@@ -18,21 +18,7 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Login Screen -->
-        <div id="login-screen" class="login-overlay">
-            <div class="login-card">
-                <div class="messi-avatar">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg" alt="Messi GOAT">
-                </div>
-                <h2 class="login-title">TIỆM GOAT POS</h2>
-                <p class="login-subtitle">Chào mừng trở lại!</p>
-                
-                <div class="login-form">
-                    <input type="password" id="login-input" placeholder="Nhập mật khẩu..." onkeydown="if(event.key==='Enter') handleLogin()">
-                    <button class="btn-primary-login" onclick="handleLogin()">Đăng nhập</button>
-                </div>
-            </div>
-        </div>
+
 
         <!-- Top Header -->
         <header class="top-header">
@@ -41,9 +27,7 @@
                     <h1 class="main-title">Tiệm GOAT POS</h1>
                     <p class="current-date"><span id="header-date">25 Tháng 4, 2024</span></p>
                 </div>
-                <button class="logout-btn" onclick="logout()" title="Đăng xuất">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
+
             </div>
         </header>
 
@@ -143,37 +127,187 @@
             <div class="menu-screen screen" id="menu-section" style="display: none;">
                 <h3 class="section-label">HÀNH ĐỘNG</h3>
                 <div class="menu-list">
-                    <div class="menu-item">
+                    <div class="menu-item" onclick="switchTab('print-config-section')">
                         <div class="menu-item-left">
-                            <span class="menu-icon">📈</span>
-                            <span class="menu-label">Xem Report Tổng Quan</span>
+                            <span class="menu-icon">🖨️</span>
+                            <span class="menu-label">Cấu hình in Hóa đơn</span>
+                        </div>
+                        <span class="menu-chevron">›</span>
+                    </div>
+                    <div class="menu-item" onclick="switchTab('payment-config-section')">
+                        <div class="menu-item-left">
+                            <span class="menu-icon">💰</span>
+                            <span class="menu-label">Cấu hình Thanh toán</span>
                         </div>
                         <span class="menu-chevron">›</span>
                     </div>
                 </div>
 
-                <h3 class="section-label" style="margin-top: 24px;">CẤU HÌNH THANH TOÁN</h3>
-                <div class="config-card" style="background: white; padding: 16px; border-radius: 12px; box-shadow: var(--card-shadow);">
-                    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Tải lên mã QR ngân hàng của bạn để khách hàng quét thanh toán.</p>
-                    <div class="qr-setup-area" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                        <div id="qr-preview-container" style="width: 120px; height: 120px; border: 2px dashed #e2e8f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            </div>
+
+            <!-- Payment Config Screen -->
+            <div class="payment-config-screen screen" id="payment-config-section" style="display: none;">
+                <div class="screen-header">
+                    <button class="back-btn" onclick="switchTab('menu-section')" style="border: none; background: none; font-size: 18px; color: var(--primary); margin-bottom: 10px; padding: 0; cursor: pointer;">
+                        <i class="fa-solid fa-arrow-left"></i> Quay lại
+                    </button>
+                    <h2 class="screen-title">Cấu hình Thanh toán</h2>
+                    <p class="screen-subtitle">Thiết lập mã QR và thông tin thanh toán</p>
+                </div>
+                
+                <div class="config-card" style="background: white; padding: 20px; border-radius: 16px; box-shadow: var(--card-shadow);">
+                    <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">Tải lên mã QR ngân hàng của bạn để khách hàng quét thanh toán.</p>
+                    <div class="qr-setup-area" style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+                        <div id="qr-preview-container" style="width: 160px; height: 160px; border: 2px dashed #e2e8f0; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f8fafc;">
                             <img id="qr-preview-img" src="" alt="Preview" style="max-width: 100%; display: none;">
-                            <span id="qr-preview-placeholder" style="font-size: 12px; color: #94a3b8; text-align: center; padding: 10px;">Chưa có ảnh</span>
+                            <span id="qr-preview-placeholder" style="font-size: 12px; color: #94a3b8; text-align: center; padding: 10px;">Chưa có ảnh mã QR</span>
                         </div>
                         <input type="file" id="qr-upload" accept="image/*" style="display: none;" onchange="handleQRUpload(this)">
-                        <button onclick="document.getElementById('qr-upload').click()" style="width: 100%; padding: 12px; background: #f1f5f9; border: none; border-radius: 8px; font-weight: 600; color: #334155;">
-                            📸 Chọn ảnh QR
+                        <button onclick="document.getElementById('qr-upload').click()" style="width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 12px; font-weight: 600; color: white; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <i class="fa-solid fa-camera"></i> Chọn ảnh QR Ngân hàng
                         </button>
                     </div>
                 </div>
+            </div>
 
-                <!-- Admin Reset Area -->
-                <div id="admin-reset-area" style="margin-top: 30px; display: none;">
-                    <h3 class="section-label" style="color: #e11d48;">HỆ THỐNG</h3>
-                    <button id="reset-data-btn" class="btn-danger-reset" onclick="resetAllData()">
-                        <i class="fa-solid fa-triangle-exclamation"></i> XÓA TOÀN BỘ DỮ LIỆU QUÁN
-                    </button>
-                    <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 8px;">Hành động này không thể hoàn tác. Mọi dữ liệu sẽ biến mất.</p>
+            <!-- Print Config Screen -->
+            <div class="print-config-screen screen" id="print-config-section" style="display: none;">
+                <div class="config-container">
+                    <div class="config-header">
+                        <button class="back-link" onclick="switchTab('menu-section')">
+                            <i class="fa-solid fa-arrow-left"></i> Quay lại
+                        </button>
+                        <h1 class="main-title">Cấu hình hóa đơn</h1>
+                    </div>
+
+                    <!-- KHỔ GIẤY -->
+                    <div class="config-section">
+                        <h3 class="section-label">KHỔ GIẤY</h3>
+                        <div class="paper-grid">
+                            <div class="paper-item active" id="paper-58" onclick="selectPaper(58)">58mm</div>
+                            <div class="paper-item" id="paper-80" onclick="selectPaper(80)">80mm</div>
+                        </div>
+                    </div>
+
+                    <!-- TÙY CHỌN HIỂN THỊ -->
+                    <div class="config-section">
+                        <h3 class="section-label">TÙY CHỌN HIỂN THỊ</h3>
+                        <div class="toggle-stack">
+                            <!-- Logo -->
+                            <div class="toggle-row">
+                                <div class="toggle-info">
+                                    <span class="t-title">Hiển thị Logo</span>
+                                    <span class="t-desc">Hiện biểu tượng cửa hàng ở đầu bill</span>
+                                </div>
+                                <label class="clean-switch">
+                                    <input type="checkbox" id="p-show-logo" onchange="syncPrint()" checked>
+                                    <span class="clean-slider"></span>
+                                </label>
+                            </div>
+                            <!-- QR -->
+                            <div class="toggle-row">
+                                <div class="toggle-info">
+                                    <span class="t-title">Mã QR Thanh toán</span>
+                                    <span class="t-desc">Chèn mã QR ngân hàng vào bill</span>
+                                </div>
+                                <label class="clean-switch">
+                                    <input type="checkbox" id="p-show-qr" onchange="syncPrint()" checked>
+                                    <span class="clean-slider"></span>
+                                </label>
+                            </div>
+                            <!-- WiFi -->
+                            <div class="toggle-row">
+                                <div class="toggle-info">
+                                    <span class="t-title">Mật khẩu WiFi</span>
+                                    <span class="t-desc">Thông tin mạng cho khách hàng</span>
+                                </div>
+                                <label class="clean-switch">
+                                    <input type="checkbox" id="p-show-wifi" onchange="syncPrint()">
+                                    <span class="clean-slider"></span>
+                                </label>
+                            </div>
+                            <!-- MST -->
+                            <div class="toggle-row">
+                                <div class="toggle-info">
+                                    <span class="t-title">Mã số thuế</span>
+                                    <span class="t-desc">Dành cho hộ kinh doanh cá thể</span>
+                                </div>
+                                <label class="clean-switch">
+                                    <input type="checkbox" id="p-show-tax" onchange="syncPrint()">
+                                    <span class="clean-slider"></span>
+                                </label>
+                            </div>
+                            <!-- Ghi chú -->
+                            <div class="toggle-row">
+                                <div class="toggle-info">
+                                    <span class="t-title">Ghi chú cuối</span>
+                                    <span class="t-desc">Lời cảm ơn ở chân hóa đơn</span>
+                                </div>
+                                <label class="clean-switch">
+                                    <input type="checkbox" id="p-show-note" onchange="syncPrint()" checked>
+                                    <span class="clean-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HEADER / FOOTER -->
+                    <div class="config-section">
+                        <h3 class="section-label">HEADER / FOOTER TÙY CHỈNH</h3>
+                        <div class="input-stack">
+                            <input type="text" id="p-header" class="clean-input" placeholder="Nhập Header (Đầu trang)..." oninput="syncPrint()">
+                            <input type="text" id="p-footer" class="clean-input" placeholder="Nhập Footer (Cuối trang)..." oninput="syncPrint()">
+                        </div>
+                    </div>
+
+                    <!-- TEST PRINT -->
+                    <div class="config-footer">
+                        <button class="btn-outline-test" onclick="testPrint()">
+                            <i class="fa-solid fa-pen"></i> Test In Hóa Đơn
+                        </button>
+                    </div>
+
+                    <!-- LIVE PREVIEW AREA -->
+                    <div class="config-preview-section">
+                        <h3 class="section-label" style="text-align: center;">XEM TRƯỚC HÓA ĐƠN</h3>
+                        <div id="bill-preview-box" class="thermal-bill size-58">
+                            <div class="bill-inner">
+                                <div id="v-logo" class="bill-logo"><i class="fa-solid fa-mug-hot"></i></div>
+                                <h4 class="bill-brand">TIỆM GOAT POS</h4>
+                                <p id="v-header" class="bill-txt"></p>
+                                
+                                <div class="bill-divider"></div>
+                                
+                                <div class="bill-items">
+                                    <div class="b-row"><span>Cà phê muối x1</span><span>30.000</span></div>
+                                    <div class="b-row"><span>Bạc xỉu x1</span><span>35.000</span></div>
+                                </div>
+                                
+                                <div class="bill-divider"></div>
+                                
+                                <div class="bill-total">
+                                    <span>TỔNG CỘNG:</span>
+                                    <span>65.000</span>
+                                </div>
+                                
+                                <div id="v-tax" class="bill-meta">MST: 0102030405</div>
+                                
+                                <div id="v-qr" class="bill-qr">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=GOATPOS" alt="QR">
+                                    <p>Quét để thanh toán</p>
+                                </div>
+                                
+                                <div id="v-wifi" class="bill-wifi">
+                                    <i class="fa-solid fa-wifi"></i> WiFi: GOAT_FREE / MK: 88888888
+                                </div>
+                                
+                                <p id="v-footer" class="bill-txt"></p>
+                                <div id="v-note" class="bill-thanks">Cảm ơn & Hẹn gặp lại!</div>
+                                
+                                <div class="bill-date">09/05/2024 08:30</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -186,20 +320,30 @@
                 </div>
                 <!-- POS Header -->
                 <div class="pos-header">
-                    <div class="pos-header-top" style="display: flex; gap: 10px; align-items: center; margin-bottom: 16px;">
+                    <div class="pos-header-top" style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
                         <div class="search-bar" style="margin-bottom: 0; flex: 1;">
                             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                            <input type="text" placeholder="Tìm tên món (ví dụ: Cà phê)">
+                            <input type="text" id="pos-search-input" placeholder="Tìm tên món (ví dụ: Cà phê)" oninput="filterProducts()">
                         </div>
-                        <button class="btn-add-product-pos" onclick="openBottomSheet('add-product-sheet')" style="width: 44px; height: 44px; border-radius: 10px; background: #0284c7; color: white; border: none; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                        <button class="btn-toggle-add" onclick="toggleQuickAdd()" title="Thêm món nhanh">
                             <i class="fa-solid fa-plus"></i>
                         </button>
                     </div>
+                    
+                    <!-- Quick Add Form (Hidden by default) -->
+                    <div id="quick-add-form" class="quick-add-section" style="display: none;">
+                        <div class="quick-add-grid">
+                            <input type="text" id="qa-name" placeholder="Tên món...">
+                            <input type="number" id="qa-price" placeholder="Giá (vnđ)...">
+                            <button class="btn-save-qa" onclick="handleQuickAdd()">Lưu</button>
+                        </div>
+                    </div>
+
                     <div class="categories-scroll">
-                        <div class="category-chip active">Tất cả</div>
-                        <div class="category-chip">Cà Phê</div>
-                        <div class="category-chip">Trà Trái Cây</div>
-                        <div class="category-chip">Đá Xay</div>
+                        <div class="category-chip active" onclick="filterCategory('Tất cả')">Tất cả</div>
+                        <div class="category-chip" onclick="filterCategory('Cà Phê')">Cà Phê</div>
+                        <div class="category-chip" onclick="filterCategory('Trà Trái Cây')">Trà Trái Cây</div>
+                        <div class="category-chip" onclick="filterCategory('Đá Xay')">Đá Xay</div>
                     </div>
                 </div>
 

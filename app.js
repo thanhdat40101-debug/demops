@@ -34,9 +34,31 @@ document.addEventListener('DOMContentLoaded', () => {
         transferTotal: 0
     };
     let menuItems = [];
+    let printSettings = {
+        paperSize: 58,
+        showLogo: true,
+        showQR: true,
+        showWiFi: false,
+        showTax: false,
+        showNote: true,
+        headerText: '',
+        footerText: ''
+    };
 
-    // Hàm lưu lên mây
+    // Hàm lưu lên mây và bộ nhớ máy
     window.saveAppState = function() {
+        // 1. Lưu vào LocalStorage (Luôn hoạt động)
+        const localData = {
+            tableOrders,
+            itemSales,
+            stats,
+            menuItems,
+            lastUpdate: Date.now()
+        };
+        localStorage.setItem('goat_pos_data', JSON.stringify(localData));
+        console.log("💾 Đã lưu dữ liệu vào trình duyệt!");
+
+        // 2. Đồng bộ lên Firebase (Nếu có kết nối)
         db.ref('/').update({
             tableOrders,
             itemSales,
@@ -46,18 +68,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }).then(() => {
             console.log("☁️ Dữ liệu đã được đồng bộ lên Cloud!");
         }).catch(err => {
-            console.error("Lỗi đồng bộ:", err);
+            console.warn("Lỗi đồng bộ Cloud (Có thể do chưa cấu hình Firebase):", err.message);
         });
     };
 
     window.initApp = function() {
-        console.log("⚡ Đang kết nối với Realtime Database...");
+        console.log("⚡ Đang khởi tạo ứng dụng...");
+
+        // 1. Tải dữ liệu từ LocalStorage trước để hiển thị ngay lập tức
+        const localDataStr = localStorage.getItem('goat_pos_data');
+        if (localDataStr) {
+            try {
+                const data = JSON.parse(localDataStr);
+                tableOrders = data.tableOrders || {};
+                itemSales = data.itemSales || {};
+                menuItems = data.menuItems || [];
+                if (data.stats) {
+                    stats.totalRevenue = Number(data.stats.totalRevenue) || 0;
+                    stats.totalOrders = Number(data.stats.totalOrders) || 0;
+                    stats.guestCount = Number(data.stats.guestCount) || 0;
+                    stats.cashTotal = Number(data.stats.cashTotal) || 0;
+                    stats.transferTotal = Number(data.stats.transferTotal) || 0;
+                }
+                console.log("✅ Đã khôi phục dữ liệu từ trình duyệt.");
+                
+                // Vẽ giao diện ngay
+                renderTables();
+                renderProducts();
+                updateDashboardUI();
+                updateTopSelling();
+            } catch (e) {
+                console.error("Lỗi khi đọc dữ liệu LocalStorage:", e);
+            }
+        }
         
-        // Lắng nghe dữ liệu REAL-TIME
+        // 2. Lắng nghe dữ liệu REAL-TIME từ Firebase (Sẽ ghi đè nếu có dữ liệu mới hơn)
         db.ref('/').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                // Đổ dữ liệu từ mây về máy
+                console.log("🔄 Phát hiện dữ liệu mới từ Cloud, đang cập nhật...");
                 tableOrders = data.tableOrders || {};
                 itemSales = data.itemSales || {};
                 menuItems = data.menuItems || [
@@ -75,28 +124,40 @@ document.addEventListener('DOMContentLoaded', () => {
                     stats.transferTotal = Number(data.stats.transferTotal) || 0;
                 }
 
-                // Vẽ lại giao diện NGAY LẬP TỨC khi có bất kỳ máy nào thay đổi
                 renderTables();
                 renderProducts();
                 updateDashboardUI();
                 updateTopSelling();
-                console.log("🔄 Giao diện đã được cập nhật từ Cloud.");
             } else {
-                // Nếu Database trống (lần đầu dùng), đẩy dữ liệu mặc định lên
-                saveAppState();
+                // Nếu Database trống và LocalStorage cũng trống, lưu dữ liệu mặc định
+                if (!localDataStr) saveAppState();
             }
         });
 
-        // Giữ nguyên logic Login từ localStorage (vì mỗi máy có thể login quyền khác nhau)
-        const savedRole = localStorage.getItem('goat_user_role');
-        if (savedRole) {
-            document.getElementById('login-screen').style.display = 'none';
-            applyRoleSettings(savedRole);
-        } else {
-            document.getElementById('login-screen').style.display = 'flex';
-            const loginInput = document.getElementById('login-input');
-            if (loginInput) setTimeout(() => loginInput.focus(), 500);
+        // 3. Tải cấu hình in
+        const savedPrint = localStorage.getItem('goat_print_settings');
+        if (savedPrint) {
+            printSettings = JSON.parse(savedPrint);
+            if (document.getElementById('p-show-logo')) {
+                document.getElementById('p-show-logo').checked = !!printSettings.showLogo;
+                document.getElementById('p-show-qr').checked = !!printSettings.showQR;
+                document.getElementById('p-show-wifi').checked = !!printSettings.showWiFi;
+                document.getElementById('p-show-tax').checked = !!printSettings.showTax;
+                document.getElementById('p-show-note').checked = !!printSettings.showNote;
+                document.getElementById('p-header').value = printSettings.headerText || '';
+                document.getElementById('p-footer').value = printSettings.footerText || '';
+                selectPaper(printSettings.paperSize || 58);
+            }
         }
+        syncPrint();
+        
+        // --- PRINT OPTIMIZATION ---
+        window.addEventListener('beforeprint', () => {
+            document.body.classList.add('is-printing');
+        });
+        window.addEventListener('afterprint', () => {
+            document.body.classList.remove('is-printing');
+        });
 
         loadQRCode();
         updateHeaderDate();
@@ -184,12 +245,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // Menu Items (Removed direct declaration, now in initApp)
 
     // --- POS MENU MANAGEMENT ---
+    let currentCategory = 'Tất cả';
+    let searchQuery = '';
+
+    window.filterCategory = function(category) {
+        currentCategory = category;
+        
+        // Update Chips UI
+        document.querySelectorAll('.category-chip').forEach(chip => {
+            if (chip.innerText === category) chip.classList.add('active');
+            else chip.classList.remove('active');
+        });
+
+        renderProducts();
+    };
+
+    window.filterProducts = function() {
+        searchQuery = document.getElementById('pos-search-input').value.toLowerCase().trim();
+        renderProducts();
+    };
+
     function renderProducts() {
         const grid = document.getElementById('pos-products-grid');
         if (!grid) return;
 
+        let filtered = menuItems;
+        
+        // Filter by category
+        if (currentCategory !== 'Tất cả') {
+            filtered = filtered.filter(item => item.category === currentCategory || !item.category);
+        }
+
+        // Filter by search
+        if (searchQuery) {
+            filtered = filtered.filter(item => item.name.toLowerCase().includes(searchQuery));
+        }
+
         let html = '';
-        menuItems.forEach(item => {
+        filtered.forEach(item => {
             html += `
                 <div class="product-card" onclick="addToCart('${item.name}', ${item.price})">
                     <div class="product-img-placeholder">
@@ -205,8 +298,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         });
-        grid.innerHTML = html;
+        grid.innerHTML = html || '<p style="grid-column: 1/-1; text-align: center; padding: 20px; color: #94a3b8;">Không tìm thấy món nào</p>';
     }
+
+    window.toggleQuickAdd = function() {
+        const form = document.getElementById('quick-add-form');
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            document.getElementById('qa-name').focus();
+        } else {
+            form.style.display = 'none';
+        }
+    };
+
+    window.handleQuickAdd = function() {
+        const nameEl = document.getElementById('qa-name');
+        const priceEl = document.getElementById('qa-price');
+        
+        const name = nameEl.value.trim();
+        const price = parseInt(priceEl.value);
+
+        if (!name || isNaN(price)) {
+            alert('Vui lòng nhập tên và giá món!');
+            return;
+        }
+
+        // Add to local and sync
+        menuItems.push({ name, price, category: currentCategory !== 'Tất cả' ? currentCategory : '' });
+        saveAppState();
+        renderProducts();
+        
+        // Reset
+        nameEl.value = '';
+        priceEl.value = '';
+        toggleQuickAdd();
+        alert(`Đã thêm "${name}" vào thực đơn!`);
+    };
 
     window.addNewItem = function() {
         const nameInput = document.getElementById('new-item-name');
@@ -723,96 +850,79 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- LOGIN & SECURITY LOGIC ---
-    window.handleLogin = function() {
-        const passInput = document.getElementById('login-input');
-        if (!passInput) return;
 
-        const pin = passInput.value.trim();
-        let role = null;
 
-        if (pin === '1111' || pin === 'goat1111') role = 'admin';
-        else if (pin === '2222' || pin === 'goat2222') role = 'cashier';
+    // --- CLEAN PRINT CONFIGURATION LOGIC ---
+    window.selectPaper = function(size) {
+        printSettings.paperSize = size;
+        
+        // Update UI items
+        document.querySelectorAll('.paper-item').forEach(item => {
+            if (item.innerText.includes(size)) item.classList.add('active');
+            else item.classList.remove('active');
+        });
 
-        if (role) {
-            localStorage.setItem('goat_user_role', role);
-            saveAppState();
-            applyRoleSettings(role);
-            document.getElementById('login-screen').style.display = 'none';
-            passInput.value = "";
-            passInput.style.borderColor = "#e2e8f0";
-        } else {
-            // Error feedback
-            passInput.style.borderColor = "#ef4444";
-            passInput.style.animation = 'shake 0.4s';
-            setTimeout(() => {
-                passInput.style.animation = '';
-            }, 400);
-            
-            alert("Mật khẩu không đúng. Vui lòng thử lại!");
-            passInput.value = "";
-            passInput.focus();
+        // Update Visual Preview Box Class
+        const box = document.getElementById('bill-preview-box');
+        if (box) {
+            box.classList.remove('size-58', 'size-80');
+            box.classList.add(`size-${size}`);
         }
+        
+        savePrintSettings();
     };
 
-    window.logout = function() {
-        if (confirm("Bạn có muốn đăng xuất không?")) {
-            localStorage.removeItem('goat_user_role');
-            location.reload(); 
+    window.syncPrint = function() {
+        // Sync settings object from DOM
+        const headerEl = document.getElementById('p-header');
+        const footerEl = document.getElementById('p-footer');
+        
+        if (headerEl) {
+            printSettings.showLogo = document.getElementById('p-show-logo').checked;
+            printSettings.showQR = document.getElementById('p-show-qr').checked;
+            printSettings.showWiFi = document.getElementById('p-show-wifi').checked;
+            printSettings.showTax = document.getElementById('p-show-tax').checked;
+            printSettings.showNote = document.getElementById('p-show-note').checked;
+            printSettings.headerText = headerEl.value;
+            printSettings.footerText = footerEl.value;
         }
+
+        // --- REAL-TIME VISUAL BINDING ---
+        const toggleV = (id, show) => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', !show);
+        };
+
+        toggleV('v-logo', printSettings.showLogo);
+        toggleV('v-qr', printSettings.showQR);
+        toggleV('v-wifi', printSettings.showWiFi);
+        toggleV('v-tax', printSettings.showTax);
+        toggleV('v-note', printSettings.showNote);
+
+        const vHeader = document.getElementById('v-header');
+        if (vHeader) vHeader.innerText = printSettings.headerText;
+        const vFooter = document.getElementById('v-footer');
+        if (vFooter) vFooter.innerText = printSettings.footerText;
+
+        savePrintSettings();
     };
 
-    window.resetAllData = function() {
-        const confirmed = confirm("⚠️ BẠN CÓ CHẮC CHẮN?\nToàn bộ doanh thu, thực đơn và đơn hàng ở các bàn sẽ bị xóa sạch vĩnh viễn trên toàn hệ thống!");
-        if (confirmed) {
-            const secondConfirm = confirm("Đây là hành động KHÔNG THỂ HOÀN TÁC. Bạn vẫn muốn tiếp tục?");
-            if (secondConfirm) {
-                // 1. Clear Local Storage
-                localStorage.clear();
-
-                // 2. Clear Firebase Cloud
-                db.ref('/').set({
-                    stats: {
-                        totalRevenue: 0,
-                        totalOrders: 0,
-                        guestCount: 0,
-                        cashTotal: 0,
-                        transferTotal: 0
-                    },
-                    tableOrders: {},
-                    itemSales: {},
-                    menuItems: [
-                        { name: 'Nâu Đá', price: 35000 },
-                        { name: 'Đen Đá', price: 30000 },
-                        { name: 'Bạc Xỉu', price: 40000 },
-                        { name: 'Trà Đào Cam Sả', price: 45000 }
-                    ],
-                    lastUpdate: firebase.database.ServerValue.TIMESTAMP
-                }).then(() => {
-                    alert("✅ Toàn bộ dữ liệu đã được xóa sạch. Hệ thống sẽ khởi động lại.");
-                    window.location.reload();
-                }).catch(err => {
-                    alert("Lỗi khi xóa dữ liệu trên Cloud: " + err.message);
-                });
-            }
-        }
-    };
-
-    function applyRoleSettings(role) {
-        const menuNav = document.getElementById('nav-menu');
-        const adminResetArea = document.getElementById('admin-reset-area');
-
-        if (role === 'cashier') {
-            if (menuNav) menuNav.style.display = 'none';
-            if (adminResetArea) adminResetArea.style.display = 'none';
-            if (document.getElementById('menu-section').style.display !== 'none') {
-                switchTab('dashboard-section');
-            }
-        } else {
-            if (menuNav) menuNav.style.display = 'flex';
-            if (adminResetArea) adminResetArea.style.display = 'block';
+    function togglePreviewElement(id, isShow) {
+        const el = document.getElementById(id);
+        if (el) {
+            if (isShow) el.classList.remove('hidden');
+            else el.classList.add('hidden');
         }
     }
+
+    function savePrintSettings() {
+        localStorage.setItem('goat_print_settings', JSON.stringify(printSettings));
+    }
+
+    window.testPrint = function() {
+        console.log("In thử hóa đơn:", printSettings.paperSize + "mm");
+        window.print();
+    };
 
     // Start App
     initApp();
@@ -833,15 +943,22 @@ document.head.appendChild(styleSheet);
 
 // --- GLOBAL NAVIGATION LOGIC ---
 function switchTab(tabId) {
-    // 1. Lấy tất cả các thẻ section (màn hình)
-    const sections = ['dashboard-section', 'pos-section', 'tables-section', 'menu-section'];
+    // 1. Lấy tất cả các thẻ section (màn hình) bao gồm cả các phân hệ cấu hình
+    const sections = [
+        'dashboard-section', 
+        'pos-section', 
+        'tables-section', 
+        'menu-section', 
+        'print-config-section', 
+        'payment-config-section'
+    ];
     
-    // 2. Ẩn tất cả đi (thêm class d-none)
+    // 2. Ẩn tất cả đi
     sections.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.classList.add('d-none');
-            el.style.display = 'none'; // Ép ẩn cứng
+            el.style.display = 'none'; 
         }
     });
 
@@ -856,18 +973,25 @@ function switchTab(tabId) {
     const navItems = document.querySelectorAll('.bottom-nav-item');
     navItems.forEach(item => item.classList.remove('active'));
     
-    // Tìm nút vừa bấm dựa vào thuộc tính onclick và set active
-    const activeBtn = document.querySelector(`.bottom-nav-item[onclick*="${tabId}"]`);
+    // Tìm nút tương ứng với tabId hoặc tab gốc (nếu là sub-page của Menu)
+    let searchId = tabId;
+    if (tabId === 'print-config-section' || tabId === 'payment-config-section') {
+        searchId = 'menu-section';
+    }
+
+    const activeBtn = document.querySelector(`.bottom-nav-item[onclick*="${searchId}"]`);
     if (activeBtn) activeBtn.classList.add('active');
 }
 
 // Menu Action Logic
 document.addEventListener('DOMContentLoaded', () => {
+    // Xóa bỏ hoặc tinh chỉnh listener để không hiện alert đè lên logic chuyển trang
     const actionMenuItems = document.querySelectorAll('.menu-item');
     actionMenuItems.forEach(item => {
         item.addEventListener('click', () => {
-            const label = item.querySelector('.menu-label').innerText;
-            alert(`Mở tính năng: ${label}`);
+            // Logic chuyển trang đã được xử lý qua thuộc tính onclick="switchTab(...)"
+            // Chỉ log ra console để debug nếu cần
+            console.log("Navigating to:", item.querySelector('.menu-label').innerText);
         });
     });
 

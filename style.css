@@ -438,9 +438,72 @@ body {
 }
 
 .category-chip.active {
-    background-color: #e0f2fe;
-    color: var(--primary);
-    border-color: #bae6fd;
+    background-color: var(--primary);
+    color: var(--white);
+    box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.2);
+}
+
+/* Quick Add Section */
+.quick-add-section {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.quick-add-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 60px;
+    gap: 8px;
+}
+
+.quick-add-grid input {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-size: 13px;
+    outline: none;
+}
+
+.quick-add-grid input:focus {
+    border-color: var(--primary);
+}
+
+.btn-save-qa {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-toggle-add {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #f1f5f9;
+    color: var(--text-dark);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-toggle-add:active {
+    transform: scale(0.95);
+    background: var(--primary);
+    color: white;
 }
 
 /* Products Grid */
@@ -452,46 +515,54 @@ body {
 
 .product-card {
     background-color: var(--white);
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
     overflow: hidden;
     position: relative;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.product-card:active {
+    transform: scale(0.98);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
 .product-img-placeholder {
-    height: 100px;
-    background-color: #f1f5f9;
+    height: 110px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #cbd5e1;
-    font-size: 32px;
+    color: var(--primary);
+    font-size: 36px;
+    opacity: 0.8;
 }
 
 .product-info {
-    padding: 12px;
+    padding: 14px;
 }
 
 .product-name {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     margin-bottom: 4px;
     color: var(--text-dark);
 }
 
 .product-price {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: var(--primary);
 }
 
 .btn-add-item {
     position: absolute;
-    bottom: 8px;
-    right: 8px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
+    bottom: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
     background-color: var(--primary);
     color: var(--white);
     border: none;
@@ -499,6 +570,7 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);
 }
 
 /* Floating Cart Bar */
@@ -507,18 +579,19 @@ body {
     bottom: var(--nav-height);
     left: 50%;
     transform: translateX(-50%);
-    width: calc(100% - 32px);
-    max-width: calc(480px - 32px);
-    height: 54px;
-    background-color: #0369a1;
-    border-radius: 12px 12px 0 0;
+    width: calc(100% - 24px);
+    max-width: calc(480px - 24px);
+    height: 60px;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    border-radius: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 20px;
     color: var(--white);
-    z-index: 90;
-    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 150;
+    box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.4);
+    margin-bottom: 12px;
 }
 
 .cart-info {
@@ -855,129 +928,7 @@ body {
     color: var(--white);
 }
 
-/* Login Screen Styles (Light Mode) */
-.login-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #f8fafc;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
 
-.login-card {
-    background: #ffffff;
-    padding: 40px 30px;
-    border-radius: 24px;
-    width: 100%;
-    max-width: 360px;
-    text-align: center;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f1f5f9;
-}
-
-.messi-avatar {
-    width: 100px;
-    height: 100px;
-    margin: 0 auto 20px;
-    border-radius: 50%;
-    border: 2px solid #fbbf24;
-    overflow: hidden;
-    padding: 3px;
-    background: white;
-}
-
-.messi-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-}
-
-.login-title {
-    color: #1e293b;
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
-.login-subtitle {
-    color: #64748b;
-    font-size: 14px;
-    margin-bottom: 30px;
-}
-
-.login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.login-form input {
-    width: 100%;
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
-    color: #1e293b;
-    text-align: center;
-    font-size: 16px;
-    padding: 14px;
-    border-radius: 12px;
-    transition: all 0.2s;
-}
-
-.login-form input:focus {
-    outline: none;
-    border-color: #0284c7;
-    background: #ffffff;
-    box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.1);
-}
-
-.btn-primary-login {
-    width: 100%;
-    background: #0284c7;
-    color: white;
-    border: none;
-    padding: 14px;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-primary-login:active {
-    transform: scale(0.98);
-    background: #0369a1;
-}
-
-.btn-danger-reset {
-    width: 100%;
-    background: #e11d48;
-    color: white;
-    border: none;
-    padding: 16px;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-top: 10px;
-    box-shadow: 0 4px 6px -1px rgba(225, 29, 72, 0.2);
-}
-
-.btn-danger-reset:active {
-    transform: scale(0.98);
-    background: #be123c;
-}
 
 .qr-container {
     text-align: center;
@@ -1108,7 +1059,7 @@ body {
     justify-content: space-around;
     align-items: center;
     padding: 0 8px;
-    z-index: 100;
+    z-index: 500; /* Tăng z-index để luôn nằm trên các màn hình con */
 }
 
 .bottom-nav-item {
@@ -1149,4 +1100,417 @@ body {
 .main-content::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 4px;
+}
+
+/* --- CLEAN PRINT CONFIGURATION REWRITE --- */
+.print-config-screen {
+    background-color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+    padding-bottom: 120px;
+}
+
+.config-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.config-header {
+    margin-bottom: 30px;
+}
+
+.back-link {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 15px;
+}
+
+.main-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.config-section {
+    margin-bottom: 28px;
+}
+
+.section-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: #94a3b8;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+}
+
+/* KHỔ GIẤY */
+.paper-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.paper-item {
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.paper-item.active {
+    background: #f0f9ff;
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* TÙY CHỌN HIỂN THỊ (Rows) */
+.toggle-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f0f9ff; /* Màu xanh nhạt */
+    padding: 16px 20px;
+    border-radius: 16px;
+}
+
+.toggle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    margin-right: 15px;
+}
+
+.t-title {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 15px;
+}
+
+.t-desc {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Clean Switches */
+.clean-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.clean-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.clean-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1;
+    transition: .3s;
+    border-radius: 34px;
+}
+
+.clean-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked + .clean-slider {
+    background-color: var(--primary);
+}
+
+input:checked + .clean-slider:before {
+    transform: translateX(22px);
+}
+
+/* Inputs */
+.input-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.clean-input {
+    width: 100%;
+    padding: 16px;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    background: #f0f9ff;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.clean-input:focus {
+    background: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.1);
+}
+
+/* Footer Button */
+.config-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.btn-outline-test {
+    padding: 14px 24px;
+    background: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-outline-test:hover {
+    background: #f0f9ff;
+    transform: translateY(-2px);
+}
+
+.btn-outline-test i {
+    font-size: 16px;
+}
+
+/* Live Preview Section */
+.config-preview-section {
+    margin-top: 40px;
+    padding: 30px;
+    background: #f8fafc;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.thermal-bill {
+    background: white;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border-radius: 2px;
+    position: relative;
+    color: #111;
+    font-family: 'Courier New', Courier, monospace;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.thermal-bill.size-58 { width: 240px; }
+.thermal-bill.size-80 { width: 340px; }
+
+.bill-inner {
+    padding: 25px 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Zig-zag edge bottom */
+.thermal-bill::after {
+    content: "";
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 100%;
+    height: 10px;
+    background: linear-gradient(-45deg, white 5px, transparent 0), 
+                linear-gradient(45deg, white 5px, transparent 0);
+    background-size: 10px 10px;
+}
+
+.bill-logo {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.bill-brand {
+    font-size: 16px;
+    font-weight: 900;
+    margin: 0;
+    text-align: center;
+}
+
+.bill-txt {
+    font-size: 12px;
+    text-align: center;
+    margin: 5px 0;
+    line-height: 1.4;
+    word-break: break-word;
+    width: 100%;
+}
+
+.bill-divider {
+    width: 100%;
+    border-top: 1.5px dashed #444;
+    margin: 12px 0;
+}
+
+.bill-items {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.b-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.bill-total {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-weight: 900;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.bill-meta {
+    font-size: 10px;
+    margin-top: 12px;
+    font-weight: 700;
+}
+
+.bill-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 15px 0;
+}
+
+.bill-qr img {
+    width: 100px;
+    height: 100px;
+    padding: 5px;
+    border: 1px solid #eee;
+    margin-bottom: 5px;
+}
+
+.bill-qr p {
+    font-size: 10px;
+    margin: 0;
+    font-weight: 700;
+}
+
+.bill-wifi {
+    font-size: 10px;
+    font-weight: 700;
+    background: #f1f5f9;
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin: 8px 0;
+}
+
+.bill-thanks {
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 8px;
+}
+
+.bill-date {
+    font-size: 10px;
+    color: #666;
+    margin-top: 15px;
+}
+
+/* Visibility Control */
+.hidden { display: none !important; }
+
+@media (max-width: 480px) {
+    .main-title { font-size: 20px; }
+    .toggle-row { padding: 14px 16px; }
+    .t-title { font-size: 14px; }
+    .config-preview-section { padding: 20px 10px; }
+    .thermal-bill.size-80 { width: 300px; } 
+}
+
+/* --- OPTIMIZED THERMAL PRINTING --- */
+@media print {
+    @page {
+        margin: 0;
+    }
+    
+    body * {
+        visibility: hidden;
+    }
+
+    /* Chỉ hiện phần hóa đơn */
+    #bill-preview-box, #bill-preview-box * {
+        visibility: visible;
+    }
+
+    #bill-preview-box {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .bill-inner {
+        padding: 10px 0 !important;
+        width: 100% !important;
+    }
+
+    /* Khổ giấy đặc thù */
+    .thermal-bill.size-58 { width: 58mm !important; }
+    .thermal-bill.size-80 { width: 80mm !important; }
+
+    /* Ẩn các thành phần không cần thiết của trình duyệt */
+    .config-preview-section {
+        background: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .section-label, .config-header, .bottom-nav, .sidebar, .btn-outline-test {
+        display: none !important;
+    }
 }
