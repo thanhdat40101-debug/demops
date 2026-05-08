@@ -141,6 +141,20 @@
                         </div>
                         <span class="menu-chevron">›</span>
                     </div>
+                    <div class="menu-item" onclick="switchTab('order-history-section')">
+                        <div class="menu-item-left">
+                            <span class="menu-icon">📜</span>
+                            <span class="menu-label">Lịch sử đơn hàng</span>
+                        </div>
+                        <span class="menu-chevron">›</span>
+                    </div>
+                    <div class="menu-item" onclick="openShiftManagement()">
+                        <div class="menu-item-left">
+                            <span class="menu-icon"><i class="fa-solid fa-user-clock"></i></span>
+                            <span class="menu-label">Quản lý ca</span>
+                        </div>
+                        <span class="menu-chevron">›</span>
+                    </div>
                 </div>
 
             </div>
@@ -166,6 +180,96 @@
                         <button onclick="document.getElementById('qr-upload').click()" style="width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 12px; font-weight: 600; color: white; display: flex; align-items: center; justify-content: center; gap: 10px;">
                             <i class="fa-solid fa-camera"></i> Chọn ảnh QR Ngân hàng
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order History Screen -->
+            <div class="order-history-screen screen" id="order-history-section" style="display: none;">
+                <div class="screen-header" style="margin-bottom: 20px;">
+                    <button class="back-link" onclick="switchTab('menu-section')">
+                        <i class="fa-solid fa-arrow-left"></i> Quay lại
+                    </button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                        <div>
+                            <h1 class="main-title">Lịch sử đơn hàng</h1>
+                            <p class="screen-subtitle" style="font-size: 13px; color: #64748b;">Tra cứu các hóa đơn đã thanh toán</p>
+                        </div>
+                        <button class="btn-clear-history" onclick="confirmClearHistory()" style="background: #fee2e2; color: #dc2626; border: none; padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 13px; cursor: pointer;">
+                            <i class="fa-solid fa-trash-can"></i> Xóa
+                        </button>
+                    </div>
+                </div>
+
+                <div class="history-controls" style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px;">
+                    <div class="search-box" style="position: relative;">
+                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                        <input type="text" id="history-search" placeholder="Tìm mã đơn hoặc số bàn..." oninput="filterHistory()" style="width: 100%; padding: 14px 14px 14px 44px; border-radius: 14px; border: 1px solid #e2e8f0; background: white; font-size: 14px; outline: none;">
+                    </div>
+                    
+                    <div class="filter-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="filter-group">
+                            <label style="display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px; padding-left: 4px;">CHỌN NGÀY</label>
+                            <input type="date" id="history-date-filter" onchange="filterHistory()" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; font-size: 13px; outline: none;">
+                        </div>
+                        <div class="filter-group">
+                            <label style="display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px; padding-left: 4px;">THANH TOÁN</label>
+                            <select id="history-method-filter" onchange="filterHistory()" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; font-size: 13px; outline: none;">
+                                <option value="all">Tất cả</option>
+                                <option value="Tiền mặt">Tiền mặt</option>
+                                <option value="Chuyển khoản">Chuyển khoản</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="history-list" id="history-list-container">
+                    <!-- Order cards go here -->
+                </div>
+            </div>
+
+            <!-- Shift Management Screen -->
+            <div class="shift-management-screen screen" id="shift-management-section" style="display: none;">
+                <div class="screen-header" style="margin-bottom: 20px;">
+                    <button class="back-link" onclick="switchTab('menu-section')">
+                        <i class="fa-solid fa-arrow-left"></i> Quay lại
+                    </button>
+                    <div style="margin-top: 10px;">
+                        <h1 class="main-title">Quản lý ca</h1>
+                        <p class="screen-subtitle" style="font-size: 13px; color: #64748b;">Theo dõi và quản lý các phiên làm việc của nhân viên</p>
+                    </div>
+                </div>
+                
+                <!-- Placeholder for shift list -->
+                <div style="padding: 40px; text-align: center; color: #94a3b8; font-size: 14px;">
+                    <i class="fa-solid fa-clock-rotate-left" style="font-size: 40px; margin-bottom: 15px; opacity: 0.3;"></i>
+                    <p>Đang tải dữ liệu phiên làm việc...</p>
+                </div>
+            </div>
+
+            <!-- Feature Update Modal -->
+            <div id="update-modal" class="modal-overlay" style="display: none; z-index: 2000; align-items: center; justify-content: center; background: rgba(0,0,0,0.6);">
+                <div class="update-popup" style="background: white; width: 85%; max-width: 340px; border-radius: 24px; padding: 30px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);">
+                    <div class="update-icon-circle" style="width: 70px; height: 70px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <i class="fa-solid fa-hourglass-half" style="font-size: 30px; color: var(--primary);"></i>
+                    </div>
+                    <h2 style="font-size: 20px; font-weight: 800; color: #1e293b; margin-bottom: 10px;">Đang cập nhật!</h2>
+                    <p style="font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 25px;">Tính năng quản lý ca làm việc đang được phát triển và sẽ sớm ra mắt trong bản cập nhật tới.</p>
+                    <button onclick="closeUpdateModal()" style="width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer;">Đã hiểu</button>
+                </div>
+            </div>
+
+            <!-- Order Detail Modal -->
+            <div id="order-detail-modal" class="modal-overlay" style="display: none; z-index: 1000;">
+                <div class="bottom-sheet active" style="transform: translateX(-50%) translateY(0); height: 80vh; max-height: 80vh;">
+                    <div class="sheet-header">
+                        <h3 class="sheet-title">Chi tiết hóa đơn</h3>
+                        <button class="btn-close-sheet" onclick="closeOrderModal()" style="border: none; background: none; font-size: 20px; color: #64748b; cursor: pointer;">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="sheet-body" id="order-detail-content" style="padding: 20px; overflow-y: auto;">
+                        <!-- Detail content goes here -->
                     </div>
                 </div>
             </div>
@@ -408,21 +512,27 @@
             <div class="sheet-body" id="bill-sheet-content">
                 <!-- Bill items and totals -->
                 <div id="bill-items-list"></div>
-                <div class="bill-summary">
+                <div class="bill-summary" style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #f1f5f9; display: flex; justify-content: space-between; font-weight: 800; font-size: 18px; color: var(--primary); margin-bottom: 20px;">
                     <span>Tổng cộng:</span>
                     <span id="bill-total-amount">0 đ</span>
                 </div>
-                <div class="order-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-                    <button class="btn-action add-more" id="btn-add-more" onclick="addMoreItems()">
-                        <i class="fa-solid fa-plus"></i> Gọi Thêm
+                
+                <div class="order-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn-action add-more" id="btn-add-more" onclick="addMoreItems()" style="padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa-solid fa-plus"></i> Gọi thêm
                     </button>
-                    <button class="btn-action move-table" id="btn-move-table" onclick="moveTable()">
-                        <i class="fa-solid fa-arrows-rotate"></i> Chuyển Bàn
+                    <button class="btn-action move-table" id="btn-move-table" onclick="moveTable()" style="padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa-solid fa-arrows-rotate"></i> Chuyển bàn
                     </button>
                 </div>
-                <div class="payment-actions">
-                    <button class="btn-pay cash" onclick="payWithCash()">💵 Tiền Mặt</button>
-                    <button class="btn-pay transfer" onclick="showQRTransfer()">💳 Chuyển Khoản</button>
+
+                <div class="payment-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="btn-pay cash" onclick="payWithCash()" style="padding: 16px; border-radius: 14px; border: none; font-weight: 700; background: #f1f5f9; color: #1e293b; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                        <span style="font-size: 20px;">💵</span> Tiền mặt
+                    </button>
+                    <button class="btn-pay transfer" onclick="showQRTransfer()" style="padding: 16px; border-radius: 14px; border: none; font-weight: 700; background: var(--primary); color: white; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                        <span style="font-size: 20px;">💳</span> Chuyển khoản
+                    </button>
                 </div>
             </div>
             <!-- QR View (Hidden by default) -->

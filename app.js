@@ -34,6 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
         transferTotal: 0
     };
     let menuItems = [];
+    let orderHistory = [];
+
+    // Local Storage Keys
+    const DB_KEY = 'goat_pos_database';
+    const PRINT_KEY = 'goat_print_settings';
+    const QR_KEY = 'store_qr_code';
+    const HISTORY_KEY = 'goat_order_history';
     let printSettings = {
         paperSize: 58,
         showLogo: true,
@@ -135,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 3. Tải cấu hình in
-        const savedPrint = localStorage.getItem('goat_print_settings');
+        const savedPrint = localStorage.getItem(PRINT_KEY);
         if (savedPrint) {
             printSettings = JSON.parse(savedPrint);
             if (document.getElementById('p-show-logo')) {
@@ -150,6 +157,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         syncPrint();
+
+        // 4. Tải lịch sử đơn hàng
+        const savedHistory = localStorage.getItem(HISTORY_KEY);
+        if (savedHistory) {
+            orderHistory = JSON.parse(savedHistory);
+        }
         
         // --- PRINT OPTIMIZATION ---
         window.addEventListener('beforeprint', () => {
@@ -161,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         loadQRCode();
         updateHeaderDate();
+        renderHistory();
     };
 
     // --- CHART INITIALIZATION ---
@@ -716,18 +730,18 @@ document.addEventListener('DOMContentLoaded', () => {
     window.payWithCash = function() {
         if (confirm(`Xác nhận thanh toán TIỀN MẶT cho Bàn ${selectedTableForBill}?`)) {
             stats.cashTotal += tableOrders[selectedTableForBill].total;
-            finishPayment();
+            finishPayment('Tiền mặt');
         }
     };
 
     window.confirmPayment = function() {
         if (confirm(`Đã xác nhận nhận đủ tiền CHUYỂN KHOẢN cho Bàn ${selectedTableForBill}?`)) {
             stats.transferTotal += tableOrders[selectedTableForBill].total;
-            finishPayment();
+            finishPayment('Chuyển khoản');
         }
     };
 
-    function finishPayment() {
+    function finishPayment(method = 'Khác') {
         const id = selectedTableForBill;
         const order = tableOrders[id];
         const orderTotal = order.total;
@@ -747,6 +761,25 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDashboardUI();
         updateTopSelling();
 
+        // Archive Order to History
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                        now.getMinutes().toString().padStart(2, '0') + ' ' + 
+                        now.getDate().toString().padStart(2, '0') + '/' + 
+                        (now.getMonth() + 1).toString().padStart(2, '0') + '/' + 
+                        now.getFullYear();
+
+        const archiveOrder = {
+            id: 'ORD-' + Date.now().toString().slice(-6),
+            time: timeStr,
+            items: JSON.parse(JSON.stringify(order.items)),
+            total: orderTotal,
+            tableId: id,
+            paymentMethod: method
+        };
+        orderHistory.unshift(archiveOrder);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(orderHistory));
+
         delete tableOrders[id];
         
         let tableEl = document.getElementById("table-" + id);
@@ -759,7 +792,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTableStats();
         saveAppState();
         closeAllModals();
-        alert('🎉 Thanh toán thành công!\nDữ liệu đã được khóa vào bộ nhớ.');
+        alert('🎉 Thanh toán thành công!\nĐơn hàng đã được lưu vào lịch sử.');
+        renderHistory();
     }
 
     function updateTableStats() {
@@ -915,8 +949,132 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- ORDER HISTORY LOGIC ---
+    window.renderHistory = function(filterData = orderHistory) {
+        const container = document.getElementById('history-list-container');
+        if (!container) return;
+
+        if (filterData.length === 0) {
+            container.innerHTML = '<p style="text-align:center; padding:40px; color:#94a3b8; font-size:14px;">Chưa có đơn hàng nào.</p>';
+            return;
+        }
+
+        let html = '';
+        filterData.forEach(order => {
+            const methodColor = order.paymentMethod === 'Tiền mặt' ? '#16a34a' : '#0284c7';
+            const methodBg = order.paymentMethod === 'Tiền mặt' ? '#dcfce7' : '#e0f2fe';
+            
+            html += `
+                <div class="order-card" onclick="showOrderDetail('${order.id}')">
+                    <div class="order-info-left">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="order-id">${order.id} (Bàn ${order.tableId})</span>
+                            <span style="font-size:10px; padding:2px 6px; border-radius:4px; background:${methodBg}; color:${methodColor}; font-weight:700;">${order.paymentMethod || 'N/A'}</span>
+                        </div>
+                        <span class="order-time">${order.time}</span>
+                    </div>
+                    <span class="order-amount">${order.total.toLocaleString()} đ</span>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    };
+
+    window.filterHistory = function() {
+        const query = document.getElementById('history-search').value.toLowerCase();
+        const dateFilter = document.getElementById('history-date-filter').value; // YYYY-MM-DD
+        const methodFilter = document.getElementById('history-method-filter').value;
+
+        const filtered = orderHistory.filter(o => {
+            // 1. Text Search (ID or Table)
+            const matchesQuery = o.id.toLowerCase().includes(query) || 
+                               o.tableId.toString().includes(query);
+            
+            // 2. Date Filter
+            // o.time format: "HH:mm DD/MM/YYYY"
+            let matchesDate = true;
+            if (dateFilter) {
+                const [d, m, y] = o.time.split(' ')[1].split('/');
+                const orderDateFormatted = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                matchesDate = orderDateFormatted === dateFilter;
+            }
+
+            // 3. Method Filter
+            let matchesMethod = true;
+            if (methodFilter !== 'all') {
+                matchesMethod = o.paymentMethod === methodFilter;
+            }
+
+            return matchesQuery && matchesDate && matchesMethod;
+        });
+        renderHistory(filtered);
+    };
+
+    window.showOrderDetail = function(orderId) {
+        const order = orderHistory.find(o => o.id === orderId);
+        if (!order) return;
+
+        let itemsHtml = '';
+        order.items.forEach(item => {
+            itemsHtml += `
+                <div class="detail-item">
+                    <span>${item.qty} x ${item.name}</span>
+                    <span>${(item.price * item.qty).toLocaleString()} đ</span>
+                </div>
+            `;
+        });
+
+        const detailHtml = `
+            <div style="margin-bottom:20px;">
+                <p style="font-weight:700; color:#1e293b; margin-bottom:5px;">Mã đơn: ${order.id}</p>
+                <p style="font-size:13px; color:#64748b;">Thời gian: ${order.time}</p>
+                <p style="font-size:13px; color:#64748b;">Phục vụ tại: Bàn ${order.tableId}</p>
+            </div>
+            <div class="detail-items-list">
+                ${itemsHtml}
+            </div>
+            <div class="detail-total-row">
+                <span>TỔNG CỘNG:</span>
+                <span>${order.total.toLocaleString()} đ</span>
+            </div>
+            <div class="detail-meta-row">
+                <span>Phương thức:</span>
+                <span style="font-weight:700; color:${order.paymentMethod === 'Tiền mặt' ? '#16a34a' : '#0284c7'}">${order.paymentMethod || 'Hoàn tất'}</span>
+            </div>
+            <div style="margin-top:30px;">
+                <button class="btn-outline-test" onclick="alert('Đang in lại hóa đơn...')">
+                    <i class="fa-solid fa-print"></i> In lại hóa đơn
+                </button>
+            </div>
+        `;
+
+        document.getElementById('order-detail-content').innerHTML = detailHtml;
+        document.getElementById('order-detail-modal').style.display = 'block';
+    };
+
+    window.closeOrderModal = function() {
+        document.getElementById('order-detail-modal').style.display = 'none';
+    };
+
+    window.confirmClearHistory = function() {
+        const password = prompt("🔐 Nhập mật khẩu xác nhận để xóa lịch sử:");
+        
+        if (password === null) return; // User cancelled
+        
+        if (password === "6666") {
+            if (confirm("⚠️ Bạn có chắc chắn muốn xóa TOÀN BỘ lịch sử không?")) {
+                orderHistory = [];
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(orderHistory));
+                renderHistory();
+                alert("✅ Đã xóa sạch lịch sử đơn hàng.");
+            }
+        } else {
+            alert("❌ Sai mật khẩu! Không thể thực hiện thao tác này.");
+        }
+    };
+
     function savePrintSettings() {
-        localStorage.setItem('goat_print_settings', JSON.stringify(printSettings));
+        localStorage.setItem(PRINT_KEY, JSON.stringify(printSettings));
     }
 
     window.testPrint = function() {
@@ -950,7 +1108,9 @@ function switchTab(tabId) {
         'tables-section', 
         'menu-section', 
         'print-config-section', 
-        'payment-config-section'
+        'payment-config-section',
+        'order-history-section',
+        'shift-management-section'
     ];
     
     // 2. Ẩn tất cả đi
@@ -967,6 +1127,11 @@ function switchTab(tabId) {
     if (targetEl) {
         targetEl.classList.remove('d-none');
         targetEl.style.display = 'block'; 
+        
+        // Cập nhật dữ liệu nếu là trang Lịch sử
+        if (tabId === 'order-history-section') {
+            renderHistory();
+        }
     }
 
     // 4. Cập nhật màu nút Active ở thanh Bottom Navigation
@@ -975,13 +1140,35 @@ function switchTab(tabId) {
     
     // Tìm nút tương ứng với tabId hoặc tab gốc (nếu là sub-page của Menu)
     let searchId = tabId;
-    if (tabId === 'print-config-section' || tabId === 'payment-config-section') {
+    if (tabId === 'print-config-section' || tabId === 'payment-config-section' || tabId === 'order-history-section' || tabId === 'shift-management-section') {
         searchId = 'menu-section';
     }
 
     const activeBtn = document.querySelector(`.bottom-nav-item[onclick*="${searchId}"]`);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
+window.openShiftManagement = function() {
+    switchTab('shift-management-section');
+    
+    const modal = document.getElementById('update-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.querySelector('.update-popup').style.transform = 'scale(1)';
+        }, 50);
+    }
+};
+
+window.closeUpdateModal = function() {
+    const modal = document.getElementById('update-modal');
+    if (modal) {
+        modal.querySelector('.update-popup').style.transform = 'scale(0.9)';
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 200);
+    }
+};
 
 // Menu Action Logic
 document.addEventListener('DOMContentLoaded', () => {
