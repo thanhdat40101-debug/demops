@@ -1,8 +1,26 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- FIREBASE CONFIGURATION ---
+    // HƯỚNG DẪN: Dán đoạn mã config bạn lấy được từ Firebase Console vào đây
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    // Khởi tạo Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
     const screens = document.querySelectorAll('.screen');
     const mainContent = document.getElementById('main-content');
 
-    // --- CORE DATA ---
+    // --- CORE DATA (Sẽ được đồng bộ từ Firebase) ---
     let currentCart = [];
     let tableOrders = {}; 
     let selectedTableForBill = null;
@@ -17,40 +35,59 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let menuItems = [];
 
+    // Hàm lưu lên mây
     window.saveAppState = function() {
-        localStorage.setItem('goat_table_orders', JSON.stringify(tableOrders));
-        localStorage.setItem('goat_item_sales', JSON.stringify(itemSales));
-        localStorage.setItem('goat_stats', JSON.stringify(stats));
-        localStorage.setItem('goat_menu_items', JSON.stringify(menuItems));
-        console.log("🚀 Dữ liệu đã được khóa vào bộ nhớ!");
+        db.ref('/').update({
+            tableOrders,
+            itemSales,
+            stats,
+            menuItems,
+            lastUpdate: firebase.database.ServerValue.TIMESTAMP
+        }).then(() => {
+            console.log("☁️ Dữ liệu đã được đồng bộ lên Cloud!");
+        }).catch(err => {
+            console.error("Lỗi đồng bộ:", err);
+        });
     };
 
     window.initApp = function() {
-        // 1. Load Tables & Orders
-        tableOrders = JSON.parse(localStorage.getItem('goat_table_orders')) || {};
+        console.log("⚡ Đang kết nối với Realtime Database...");
         
-        // 2. Load Item Sales
-        itemSales = JSON.parse(localStorage.getItem('goat_item_sales')) || {};
+        // Lắng nghe dữ liệu REAL-TIME
+        db.ref('/').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                // Đổ dữ liệu từ mây về máy
+                tableOrders = data.tableOrders || {};
+                itemSales = data.itemSales || {};
+                menuItems = data.menuItems || [
+                    { name: 'Nâu Đá', price: 35000 },
+                    { name: 'Đen Đá', price: 30000 },
+                    { name: 'Bạc Xỉu', price: 40000 },
+                    { name: 'Trà Đào Cam Sả', price: 45000 }
+                ];
+                
+                if (data.stats) {
+                    stats.totalRevenue = Number(data.stats.totalRevenue) || 0;
+                    stats.totalOrders = Number(data.stats.totalOrders) || 0;
+                    stats.guestCount = Number(data.stats.guestCount) || 0;
+                    stats.cashTotal = Number(data.stats.cashTotal) || 0;
+                    stats.transferTotal = Number(data.stats.transferTotal) || 0;
+                }
 
-        // 3. Load Stats (Fixing numeric types)
-        const savedStats = JSON.parse(localStorage.getItem('goat_stats'));
-        if (savedStats) {
-            stats.totalRevenue = Number(savedStats.totalRevenue) || 0;
-            stats.totalOrders = Number(savedStats.totalOrders) || 0;
-            stats.guestCount = Number(savedStats.guestCount) || 0;
-            stats.cashTotal = Number(savedStats.cashTotal) || 0;
-            stats.transferTotal = Number(savedStats.transferTotal) || 0;
-        }
+                // Vẽ lại giao diện NGAY LẬP TỨC khi có bất kỳ máy nào thay đổi
+                renderTables();
+                renderProducts();
+                updateDashboardUI();
+                updateTopSelling();
+                console.log("🔄 Giao diện đã được cập nhật từ Cloud.");
+            } else {
+                // Nếu Database trống (lần đầu dùng), đẩy dữ liệu mặc định lên
+                saveAppState();
+            }
+        });
 
-        // 4. Load Menu
-        menuItems = JSON.parse(localStorage.getItem('goat_menu_items')) || [
-            { name: 'Nâu Đá', price: 35000 },
-            { name: 'Đen Đá', price: 30000 },
-            { name: 'Bạc Xỉu', price: 40000 },
-            { name: 'Trà Đào Cam Sả', price: 45000 }
-        ];
-
-        // 5. Check Login Session
+        // Giữ nguyên logic Login từ localStorage (vì mỗi máy có thể login quyền khác nhau)
         const savedRole = localStorage.getItem('goat_user_role');
         if (savedRole) {
             document.getElementById('login-screen').style.display = 'none';
@@ -61,11 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (loginInput) setTimeout(() => loginInput.focus(), 500);
         }
 
-        // 6. Initial Renders
-        renderTables();
-        renderProducts();
-        updateDashboardUI();
-        updateTopSelling();
         loadQRCode();
         updateHeaderDate();
     };
