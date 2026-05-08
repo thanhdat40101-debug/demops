@@ -955,18 +955,28 @@ body {
     background: #0369a1;
 }
 
-.logout-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+.btn-danger-reset {
+    width: 100%;
+    background: #e11d48;
+    color: white;
     border: none;
-    background: #f1f5f9;
-    color: #ef4444;
+    padding: 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    gap: 10px;
     cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 10px;
+    box-shadow: 0 4px 6px -1px rgba(225, 29, 72, 0.2);
+}
+
+.btn-danger-reset:active {
+    transform: scale(0.98);
+    background: #be123c;
 }
 
 .qr-container {

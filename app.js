@@ -762,15 +762,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    window.resetAllData = function() {
+        const confirmed = confirm("⚠️ BẠN CÓ CHẮC CHẮN?\nToàn bộ doanh thu, thực đơn và đơn hàng ở các bàn sẽ bị xóa sạch vĩnh viễn trên toàn hệ thống!");
+        if (confirmed) {
+            const secondConfirm = confirm("Đây là hành động KHÔNG THỂ HOÀN TÁC. Bạn vẫn muốn tiếp tục?");
+            if (secondConfirm) {
+                // 1. Clear Local Storage
+                localStorage.clear();
+
+                // 2. Clear Firebase Cloud
+                db.ref('/').set({
+                    stats: {
+                        totalRevenue: 0,
+                        totalOrders: 0,
+                        guestCount: 0,
+                        cashTotal: 0,
+                        transferTotal: 0
+                    },
+                    tableOrders: {},
+                    itemSales: {},
+                    menuItems: [
+                        { name: 'Nâu Đá', price: 35000 },
+                        { name: 'Đen Đá', price: 30000 },
+                        { name: 'Bạc Xỉu', price: 40000 },
+                        { name: 'Trà Đào Cam Sả', price: 45000 }
+                    ],
+                    lastUpdate: firebase.database.ServerValue.TIMESTAMP
+                }).then(() => {
+                    alert("✅ Toàn bộ dữ liệu đã được xóa sạch. Hệ thống sẽ khởi động lại.");
+                    window.location.reload();
+                }).catch(err => {
+                    alert("Lỗi khi xóa dữ liệu trên Cloud: " + err.message);
+                });
+            }
+        }
+    };
+
     function applyRoleSettings(role) {
         const menuNav = document.getElementById('nav-menu');
+        const adminResetArea = document.getElementById('admin-reset-area');
+
         if (role === 'cashier') {
             if (menuNav) menuNav.style.display = 'none';
+            if (adminResetArea) adminResetArea.style.display = 'none';
             if (document.getElementById('menu-section').style.display !== 'none') {
                 switchTab('dashboard-section');
             }
         } else {
             if (menuNav) menuNav.style.display = 'flex';
+            if (adminResetArea) adminResetArea.style.display = 'block';
         }
     }
 
