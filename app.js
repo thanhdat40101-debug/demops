@@ -4,25 +4,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- CORE DATA ---
     let currentCart = [];
-    let tableOrders = JSON.parse(localStorage.getItem('goat_table_orders')) || {}; 
+    let tableOrders = {}; 
     let selectedTableForBill = null;
-    let targetTableId = null; // Bàn đang được chọn để gọi thêm món
-    let itemSales = JSON.parse(localStorage.getItem('goat_item_sales')) || {}; // Tracks { "Nâu Đá": 5, ... }
-
-    // Dashboard Stats
-    let stats = JSON.parse(localStorage.getItem('goat_stats')) || {
+    let targetTableId = null; 
+    let itemSales = {}; 
+    let stats = {
         totalRevenue: 0,
         totalOrders: 0,
         guestCount: 0,
         cashTotal: 0,
         transferTotal: 0
     };
+    let menuItems = [];
 
-    window.saveDataToStorage = function() {
+    window.saveAppState = function() {
         localStorage.setItem('goat_table_orders', JSON.stringify(tableOrders));
         localStorage.setItem('goat_item_sales', JSON.stringify(itemSales));
         localStorage.setItem('goat_stats', JSON.stringify(stats));
         localStorage.setItem('goat_menu_items', JSON.stringify(menuItems));
+        console.log("🚀 Dữ liệu đã được khóa vào bộ nhớ!");
+    };
+
+    window.initApp = function() {
+        // 1. Load Tables & Orders
+        tableOrders = JSON.parse(localStorage.getItem('goat_table_orders')) || {};
+        
+        // 2. Load Item Sales
+        itemSales = JSON.parse(localStorage.getItem('goat_item_sales')) || {};
+
+        // 3. Load Stats (Fixing numeric types)
+        const savedStats = JSON.parse(localStorage.getItem('goat_stats'));
+        if (savedStats) {
+            stats.totalRevenue = Number(savedStats.totalRevenue) || 0;
+            stats.totalOrders = Number(savedStats.totalOrders) || 0;
+            stats.guestCount = Number(savedStats.guestCount) || 0;
+            stats.cashTotal = Number(savedStats.cashTotal) || 0;
+            stats.transferTotal = Number(savedStats.transferTotal) || 0;
+        }
+
+        // 4. Load Menu
+        menuItems = JSON.parse(localStorage.getItem('goat_menu_items')) || [
+            { name: 'Nâu Đá', price: 35000 },
+            { name: 'Đen Đá', price: 30000 },
+            { name: 'Bạc Xỉu', price: 40000 },
+            { name: 'Trà Đào Cam Sả', price: 45000 }
+        ];
+
+        // 5. Check Login Session
+        const savedRole = localStorage.getItem('goat_user_role');
+        if (savedRole) {
+            document.getElementById('login-screen').style.display = 'none';
+            applyRoleSettings(savedRole);
+        } else {
+            document.getElementById('login-screen').style.display = 'flex';
+            const loginInput = document.getElementById('login-input');
+            if (loginInput) setTimeout(() => loginInput.focus(), 500);
+        }
+
+        // 6. Initial Renders
+        renderTables();
+        renderProducts();
+        updateDashboardUI();
+        updateTopSelling();
+        loadQRCode();
+        updateHeaderDate();
     };
 
     // --- CHART INITIALIZATION ---
@@ -104,13 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Menu Items
-    let menuItems = JSON.parse(localStorage.getItem('goat_menu_items')) || [
-        { name: 'Nâu Đá', price: 35000 },
-        { name: 'Đen Đá', price: 30000 },
-        { name: 'Bạc Xỉu', price: 40000 },
-        { name: 'Trà Đào Cam Sả', price: 45000 }
-    ];
+    // Menu Items (Removed direct declaration, now in initApp)
 
     // --- POS MENU MANAGEMENT ---
     function renderProducts() {
@@ -150,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         menuItems.push({ name, price });
-        saveDataToStorage();
+        saveAppState();
         renderProducts();
         
         // Reset and Close
@@ -394,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
             closeAllModals();
             
             alert(isMerging ? `Đã thêm món vào Bàn ${num} thành công!` : `Đã lưu đơn vào Bàn ${num} thành công!`);
-            saveDataToStorage();
+            saveAppState();
             updateTableStats();
             switchTab('tables-section');
         }
@@ -470,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         closeAllModals();
-        saveDataToStorage();
+        saveAppState();
         updateTableStats();
         alert(`Đã chuyển đơn từ Bàn ${oldNum} sang Bàn ${newNum}.`);
     };
@@ -559,9 +598,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateTableStats();
-        saveDataToStorage();
+        saveAppState();
         closeAllModals();
-        alert('🎉 Thanh toán thành công!\nDữ liệu đã được cập nhật Real-time.');
+        alert('🎉 Thanh toán thành công!\nDữ liệu đã được khóa vào bộ nhớ.');
     }
 
     function updateTableStats() {
@@ -600,6 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = function(e) {
                 const base64Image = e.target.result;
                 localStorage.setItem('store_qr_code', base64Image);
+                saveAppState();
                 loadQRCode();
                 alert('Đã lưu mã QR thành công!');
             };
@@ -659,16 +699,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const pin = passInput.value.trim();
         let role = null;
 
-        // Cho phép nhập cả chữ và số
         if (pin === '1111' || pin === 'goat1111') role = 'admin';
         else if (pin === '2222' || pin === 'goat2222') role = 'cashier';
 
         if (role) {
             localStorage.setItem('goat_user_role', role);
+            saveAppState();
             applyRoleSettings(role);
             document.getElementById('login-screen').style.display = 'none';
             passInput.value = "";
-            passInput.style.borderColor = "#e2e8f0"; // Reset border
+            passInput.style.borderColor = "#e2e8f0";
         } else {
             // Error feedback
             passInput.style.borderColor = "#ef4444";
@@ -702,24 +742,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Check session on start
-    const savedRole = localStorage.getItem('goat_user_role');
-    if (savedRole) {
-        document.getElementById('login-screen').style.display = 'none';
-        applyRoleSettings(savedRole);
-    } else {
-        document.getElementById('login-screen').style.display = 'flex';
-        const loginInput = document.getElementById('login-input');
-        if (loginInput) setTimeout(() => loginInput.focus(), 500);
-    }
-
-    // Initial Renders
-    renderTables();
-    renderProducts();
-    updateDashboardUI();
-    updateTopSelling();
-    loadQRCode();
-    updateHeaderDate();
+    // Start App
+    initApp();
 });
 
 // --- SHAKE ANIMATION CSS ---
