@@ -620,34 +620,92 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
+    padding: 12px 0;
     border-bottom: 1px solid #f1f5f9;
-}
-
-.cart-item-row:last-child {
-    border-bottom: none;
 }
 
 .cart-item-info {
     display: flex;
     flex-direction: column;
+    gap: 4px;
 }
 
 .cart-item-name {
-    font-size: 14px;
     font-weight: 600;
+    font-size: 14px;
     color: var(--text-dark);
 }
 
-.cart-item-qty {
-    font-size: 12px;
-    color: var(--text-muted);
+.qty-controller {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.qty-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.qty-btn.dec {
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+.qty-btn.inc {
+    background-color: #e0f2fe;
+    color: #0284c7;
+}
+
+.qty-num {
+    font-size: 14px;
+    font-weight: 700;
+    min-width: 20px;
+    text-align: center;
 }
 
 .cart-item-price {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--text-dark);
+}
+
+.btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-action.add-more {
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
+.btn-action.move-table {
+    background-color: #ffedd5;
+    color: #c2410c;
+}
+
+.btn-action:active {
+    opacity: 0.8;
 }
 
 .table-selection {
@@ -797,27 +855,118 @@ body {
     color: var(--white);
 }
 
-/* QR Section */
-/* QR Code Display & Config */
-.qr-code-display {
-    max-width: 250px;
+/* Login Screen Styles (Light Mode) */
+.login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    aspect-ratio: 1;
-    object-fit: contain;
-    border: 1px solid #eee;
-    padding: 10px;
-    border-radius: 12px;
+    height: 100%;
+    background-color: #f8fafc;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.login-card {
+    background: #ffffff;
+    padding: 40px 30px;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+}
+
+.messi-avatar {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    border: 2px solid #fbbf24;
+    overflow: hidden;
+    padding: 3px;
     background: white;
 }
 
-.qr-setup-area {
-    width: 100%;
-}
-
-#qr-preview-container img {
+.messi-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 50%;
+}
+
+.login-title {
+    color: #1e293b;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.login-subtitle {
+    color: #64748b;
+    font-size: 14px;
+    margin-bottom: 30px;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.login-form input {
+    width: 100%;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    text-align: center;
+    font-size: 16px;
+    padding: 14px;
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.login-form input:focus {
+    outline: none;
+    border-color: #0284c7;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.1);
+}
+
+.btn-primary-login {
+    width: 100%;
+    background: #0284c7;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary-login:active {
+    transform: scale(0.98);
+    background: #0369a1;
+}
+
+.logout-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: none;
+    background: #f1f5f9;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
 }
 
 .qr-container {
@@ -838,27 +987,42 @@ body {
     color: var(--text-muted);
 }
 
-.btn-confirm-pay {
+.btn-confirm-payment {
     width: 100%;
     padding: 16px;
-    border-radius: 12px;
-    background-color: #16a34a;
-    color: var(--white);
+    background-color: #10b981;
+    color: #ffffff;
     border: none;
-    font-weight: 700;
+    border-radius: 12px;
+    font-weight: 600;
     font-size: 15px;
-    margin-top: 20px;
+    margin-top: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.btn-back-bill {
+.btn-confirm-payment:active {
+    transform: scale(0.98);
+    background-color: #059669;
+}
+
+.btn-cancel-sheet {
     width: 100%;
-    padding: 12px;
-    background: none;
+    padding: 14px;
+    background-color: #f1f5f9;
+    color: #64748b;
     border: none;
-    color: var(--text-muted);
-    font-size: 13px;
-    margin-top: 10px;
-    text-decoration: underline;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-cancel-sheet:active {
+    background-color: #e2e8f0;
 }
 
 .bottom-sheet.show {

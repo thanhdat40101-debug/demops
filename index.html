@@ -13,16 +13,31 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="login-overlay">
+            <div class="login-card">
+                <div class="messi-avatar">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b4/Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg" alt="Messi GOAT">
+                </div>
+                <h2 class="login-title">TIỆM GOAT POS</h2>
+                <p class="login-subtitle">Chào mừng trở lại!</p>
+                
+                <div class="login-form">
+                    <input type="password" id="login-input" placeholder="Nhập mật khẩu..." onkeydown="if(event.key==='Enter') handleLogin()">
+                    <button class="btn-primary-login" onclick="handleLogin()">Đăng nhập</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Top Header -->
         <header class="top-header">
             <div class="header-content">
                 <div class="logo-area">
                     <h1 class="main-title">Tiệm GOAT POS</h1>
-                    <p class="current-date">25 Tháng 4, 2024</p>
+                    <p class="current-date"><span id="header-date">25 Tháng 4, 2024</span></p>
                 </div>
-                <button class="notification-btn" id="notif-btn">
-                    <span class="bell-icon">🔔</span>
-                    <span class="notif-badge"></span>
+                <button class="logout-btn" onclick="logout()" title="Đăng xuất">
+                    <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
         </header>
@@ -150,6 +165,11 @@
 
             <!-- POS Screen -->
             <div class="pos-screen screen" id="pos-section" style="display: none;">
+                <!-- POS Notice Bar (Merger Mode) -->
+                <div id="pos-notice-bar" class="pos-notice-bar" style="display: none; background: #fffbeb; color: #92400e; padding: 10px; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid #fef3c7;">
+                    <i class="fa-solid fa-circle-info"></i> Đang thêm món cho <span id="pos-target-table-name">Bàn 0</span>
+                    <button onclick="cancelAddMore()" style="margin-left: 10px; border: none; background: #92400e; color: white; border-radius: 4px; padding: 2px 8px; font-size: 11px;">Hủy</button>
+                </div>
                 <!-- POS Header -->
                 <div class="pos-header">
                     <div class="pos-header-top" style="display: flex; gap: 10px; align-items: center; margin-bottom: 16px;">
@@ -183,7 +203,7 @@
                 </div>
 
                 <!-- Floating Cart Bar -->
-                <div class="floating-cart-bar" onclick="openTableSelector()">
+                <div class="floating-cart-bar" onclick="handleSaveOrder()">
                     <div class="cart-info">
                         <i class="fa-solid fa-shopping-basket"></i>
                         <span class="cart-count" id="bottom-cart-count">0 món</span>
@@ -234,6 +254,14 @@
                     <span>Tổng cộng:</span>
                     <span id="bill-total-amount">0 đ</span>
                 </div>
+                <div class="order-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                    <button class="btn-action add-more" id="btn-add-more" onclick="addMoreItems()">
+                        <i class="fa-solid fa-plus"></i> Gọi Thêm
+                    </button>
+                    <button class="btn-action move-table" id="btn-move-table" onclick="moveTable()">
+                        <i class="fa-solid fa-arrows-rotate"></i> Chuyển Bàn
+                    </button>
+                </div>
                 <div class="payment-actions">
                     <button class="btn-pay cash" onclick="payWithCash()">💵 Tiền Mặt</button>
                     <button class="btn-pay transfer" onclick="showQRTransfer()">💳 Chuyển Khoản</button>
@@ -248,8 +276,8 @@
                             ⚠️ Chưa cài đặt mã QR.<br>Vui lòng vào <b>Menu > Cấu hình</b> để thiết lập.
                         </div>
                     </div>
-                    <button class="btn-cancel-sheet" onclick="showBillDetail()" style="margin-top: 20px; background: #f1f5f9;">Quay lại</button>
-                    <button class="btn-confirm-payment" onclick="confirmPayment()" style="width: 100%; margin-top: 12px;">Xác nhận đã nhận tiền</button>
+                    <button class="btn-cancel-sheet" onclick="showBillDetail()">Quay lại</button>
+                    <button class="btn-confirm-payment" onclick="confirmPayment()">Xác nhận đã nhận tiền</button>
                 </div>
         </div>
 
@@ -272,7 +300,7 @@
             </div>
         </div>
 
-        <!-- Table Selector Sheet -->
+        <!-- Table Selector Sheet (For New Orders) -->
         <div id="tableSelectorSheet" class="bottom-sheet" style="display: none;">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
@@ -287,21 +315,36 @@
             </div>
         </div>
 
+        <!-- Transfer Table Sheet (For Moving) -->
+        <div id="transferTableSheet" class="bottom-sheet" style="display: none;">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <h3 class="sheet-title">Chọn bàn chuyển đến</h3>
+                <button class="close-sheet" onclick="closeAllModals()">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div id="transfer-table-grid" class="select-table-grid">
+                    <!-- JS will generate 40 tables here -->
+                </div>
+                <button class="btn-cancel-sheet" onclick="closeAllModals()">Hủy bỏ</button>
+            </div>
+        </div>
+
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <a href="javascript:void(0)" class="bottom-nav-item active" onclick="switchTab('dashboard-section')">
+            <a href="javascript:void(0)" id="nav-dashboard" class="bottom-nav-item active" onclick="switchTab('dashboard-section')">
                 <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
                 <span class="nav-label">Tổng quan</span>
             </a>
-            <a href="javascript:void(0)" class="bottom-nav-item" onclick="switchTab('pos-section')">
+            <a href="javascript:void(0)" id="nav-pos" class="bottom-nav-item" onclick="switchTab('pos-section')">
                 <span class="nav-icon"><i class="fa-solid fa-desktop"></i></span>
                 <span class="nav-label">POS</span>
             </a>
-            <a href="javascript:void(0)" class="bottom-nav-item" onclick="switchTab('tables-section')">
+            <a href="javascript:void(0)" id="nav-tables" class="bottom-nav-item" onclick="switchTab('tables-section')">
                 <span class="nav-icon"><i class="fa-regular fa-square"></i></span>
                 <span class="nav-label">Sơ đồ bàn</span>
             </a>
-            <a href="javascript:void(0)" class="bottom-nav-item" onclick="switchTab('menu-section')">
+            <a href="javascript:void(0)" id="nav-menu" class="bottom-nav-item" onclick="switchTab('menu-section')">
                 <span class="nav-icon"><i class="fa-solid fa-bars"></i></span>
                 <span class="nav-label">Menu</span>
             </a>

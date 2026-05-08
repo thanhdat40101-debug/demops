@@ -4,17 +4,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- CORE DATA ---
     let currentCart = [];
-    let tableOrders = {}; 
+    let tableOrders = JSON.parse(localStorage.getItem('goat_table_orders')) || {}; 
     let selectedTableForBill = null;
-    let itemSales = {}; // Tracks { "Nâu Đá": 5, ... }
+    let targetTableId = null; // Bàn đang được chọn để gọi thêm món
+    let itemSales = JSON.parse(localStorage.getItem('goat_item_sales')) || {}; // Tracks { "Nâu Đá": 5, ... }
 
     // Dashboard Stats
-    let stats = {
+    let stats = JSON.parse(localStorage.getItem('goat_stats')) || {
         totalRevenue: 0,
         totalOrders: 0,
         guestCount: 0,
         cashTotal: 0,
         transferTotal: 0
+    };
+
+    window.saveDataToStorage = function() {
+        localStorage.setItem('goat_table_orders', JSON.stringify(tableOrders));
+        localStorage.setItem('goat_item_sales', JSON.stringify(itemSales));
+        localStorage.setItem('goat_stats', JSON.stringify(stats));
+        localStorage.setItem('goat_menu_items', JSON.stringify(menuItems));
     };
 
     // --- CHART INITIALIZATION ---
@@ -59,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
             data: {
                 labels: ['Tiền mặt', 'Chuyển khoản'],
                 datasets: [{
-                    data: [0, 0],
+                    data: [stats.cashTotal, stats.transferTotal],
                     backgroundColor: ['#10b981', '#3b82f6'],
                     borderWidth: 0,
                     weight: 0.5
@@ -97,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Menu Items
-    let menuItems = [
+    let menuItems = JSON.parse(localStorage.getItem('goat_menu_items')) || [
         { name: 'Nâu Đá', price: 35000 },
         { name: 'Đen Đá', price: 30000 },
         { name: 'Bạc Xỉu', price: 40000 },
@@ -142,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         menuItems.push({ name, price });
+        saveDataToStorage();
         renderProducts();
         
         // Reset and Close
@@ -236,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let totalAmount = 0;
         let totalItems = 0;
 
-        currentCart.forEach(item => {
+        currentCart.forEach((item, index) => {
             const itemTotal = item.price * item.qty;
             totalAmount += itemTotal;
             totalItems += item.qty;
@@ -245,7 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="cart-item-row">
                     <div class="cart-item-info">
                         <span class="cart-item-name">${item.name}</span>
-                        <span class="cart-item-qty">x${item.qty}</span>
+                        <div class="qty-controller">
+                            <button class="qty-btn dec" onclick="decreaseQuantity(${index})">−</button>
+                            <span class="qty-num">${item.qty}</span>
+                            <button class="qty-btn inc" onclick="increaseQuantity(${index})">+</button>
+                        </div>
                     </div>
                     <span class="cart-item-price">${(itemTotal).toLocaleString()} đ</span>
                 </div>
@@ -256,6 +269,27 @@ document.addEventListener('DOMContentLoaded', () => {
         bottomCount.innerText = `${totalItems} món`;
         bottomTotal.innerText = `${totalAmount.toLocaleString()} đ`;
     }
+
+    window.increaseQuantity = function(index) {
+        if (currentCart[index]) {
+            currentCart[index].qty += 1;
+            renderCart();
+        }
+    };
+
+    window.decreaseQuantity = function(index) {
+        if (currentCart[index]) {
+            if (currentCart[index].qty > 1) {
+                currentCart[index].qty -= 1;
+                renderCart();
+            } else {
+                if (confirm(`Bạn có muốn xóa món "${currentCart[index].name}" khỏi giỏ hàng không?`)) {
+                    currentCart.splice(index, 1);
+                    renderCart();
+                }
+            }
+        }
+    };
 
     // Modal & Sheet Helpers
     window.closeAllModals = function() {
@@ -304,15 +338,46 @@ document.addEventListener('DOMContentLoaded', () => {
         openBottomSheet('tableSelectorSheet');
     };
 
-    window.confirmSelection = function(num) {
-        if (tableOrders[num]) return; // Safety
+    window.handleSaveOrder = function() {
+        if (currentCart.length === 0) {
+            alert("Giỏ hàng đang trống!");
+            return;
+        }
 
-        // Save Data
-        const total = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        tableOrders[num] = {
-            items: JSON.parse(JSON.stringify(currentCart)),
-            total: total
-        };
+        if (targetTableId !== null) {
+            // MERGE MODE: Lập tức gộp vào bàn đã chọn
+            confirmSelection(targetTableId);
+        } else {
+            // NORMAL MODE: Hiện bảng chọn 40 bàn
+            openTableSelector();
+        }
+    };
+
+    window.confirmSelection = function(num) {
+        // Check if we are merging
+        const isMerging = tableOrders[num] !== undefined;
+
+        const cartTotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+        if (isMerging) {
+            // Merge into existing order
+            const existingOrder = tableOrders[num];
+            currentCart.forEach(newItem => {
+                const sameItem = existingOrder.items.find(i => i.name === newItem.name);
+                if (sameItem) {
+                    sameItem.qty += newItem.qty;
+                } else {
+                    existingOrder.items.push(JSON.parse(JSON.stringify(newItem)));
+                }
+            });
+            existingOrder.total += cartTotal;
+        } else {
+            // Create New Order
+            tableOrders[num] = {
+                items: JSON.parse(JSON.stringify(currentCart)),
+                total: cartTotal
+            };
+        }
 
         // Update UI
         let tableEl = document.getElementById("table-" + num);
@@ -323,12 +388,91 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Cleanup
             currentCart = [];
+            targetTableId = null; 
+            document.getElementById('pos-notice-bar').style.display = 'none';
             renderCart();
             closeAllModals();
             
-            alert(`Đã lưu đơn vào Bàn ${num} thành công!`);
+            alert(isMerging ? `Đã thêm món vào Bàn ${num} thành công!` : `Đã lưu đơn vào Bàn ${num} thành công!`);
+            saveDataToStorage();
             updateTableStats();
+            switchTab('tables-section');
         }
+    };
+
+    window.addMoreItems = function() {
+        if (selectedTableForBill === null) return;
+        targetTableId = selectedTableForBill;
+        
+        // Show Notice in POS
+        document.getElementById('pos-target-table-name').innerText = `Bàn ${targetTableId}`;
+        document.getElementById('pos-notice-bar').style.display = 'block';
+        
+        closeAllModals();
+        switchTab('pos-section');
+    };
+
+    window.cancelAddMore = function() {
+        targetTableId = null;
+        document.getElementById('pos-notice-bar').style.display = 'none';
+        alert("Đã hủy chế độ thêm món.");
+    };
+
+    window.moveTable = function() {
+        if (!selectedTableForBill || !tableOrders[selectedTableForBill]) return;
+        openTransferTableSelector();
+    };
+
+    window.openTransferTableSelector = function() {
+        const grid = document.getElementById('transfer-table-grid');
+        if (!grid) return;
+
+        let html = '';
+        for (let i = 1; i <= 40; i++) {
+            const isOccupied = tableOrders[i] ? 'occupied' : '';
+            const isCurrent = i === selectedTableForBill ? 'current' : '';
+            html += `
+                <button class="select-table-btn ${isOccupied} ${isCurrent}" onclick="confirmTransfer(${i})">
+                    ${i}
+                </button>
+            `;
+        }
+        grid.innerHTML = html;
+        openBottomSheet('transferTableSheet');
+    };
+
+    window.confirmTransfer = function(newNum) {
+        const oldNum = selectedTableForBill;
+        if (newNum === oldNum) return;
+        if (tableOrders[newNum]) {
+            alert(`Bàn ${newNum} đang có khách!`);
+            return;
+        }
+
+        // Move Data
+        tableOrders[newNum] = tableOrders[oldNum];
+        delete tableOrders[oldNum];
+
+        // Update UI
+        [oldNum, newNum].forEach(num => {
+            let el = document.getElementById("table-" + num);
+            if (el) {
+                if (num === oldNum) {
+                    el.classList.remove("table-active");
+                    el.classList.add("table-empty");
+                    el.onclick = null;
+                } else {
+                    el.classList.remove("table-empty");
+                    el.classList.add("table-active");
+                    el.onclick = function() { viewTableBill(newNum); };
+                }
+            }
+        });
+
+        closeAllModals();
+        saveDataToStorage();
+        updateTableStats();
+        alert(`Đã chuyển đơn từ Bàn ${oldNum} sang Bàn ${newNum}.`);
     };
 
     window.viewTableBill = function(id) {
@@ -415,6 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updateTableStats();
+        saveDataToStorage();
         closeAllModals();
         alert('🎉 Thanh toán thành công!\nDữ liệu đã được cập nhật Real-time.');
     }
@@ -446,6 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTables();
     renderProducts();
     updateDashboardUI();
+    updateTopSelling();
 
     // --- QR CODE MANAGEMENT ---
     window.handleQRUpload = function(input) {
@@ -491,12 +637,103 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    window.updateHeaderDate = function() {
+        const now = new Date();
+        const day = now.getDate();
+        const month = now.getMonth() + 1; // Tháng trong JS chạy từ 0-11
+        const year = now.getFullYear();
+        
+        const dateString = `${day} Tháng ${month}, ${year}`;
+        
+        const dateEl = document.getElementById('header-date');
+        if (dateEl) {
+            dateEl.innerText = dateString;
+        }
+    };
+
+    // --- LOGIN & SECURITY LOGIC ---
+    window.handleLogin = function() {
+        const passInput = document.getElementById('login-input');
+        if (!passInput) return;
+
+        const pin = passInput.value.trim();
+        let role = null;
+
+        // Cho phép nhập cả chữ và số
+        if (pin === '1111' || pin === 'goat1111') role = 'admin';
+        else if (pin === '2222' || pin === 'goat2222') role = 'cashier';
+
+        if (role) {
+            localStorage.setItem('goat_user_role', role);
+            applyRoleSettings(role);
+            document.getElementById('login-screen').style.display = 'none';
+            passInput.value = "";
+            passInput.style.borderColor = "#e2e8f0"; // Reset border
+        } else {
+            // Error feedback
+            passInput.style.borderColor = "#ef4444";
+            passInput.style.animation = 'shake 0.4s';
+            setTimeout(() => {
+                passInput.style.animation = '';
+            }, 400);
+            
+            alert("Mật khẩu không đúng. Vui lòng thử lại!");
+            passInput.value = "";
+            passInput.focus();
+        }
+    };
+
+    window.logout = function() {
+        if (confirm("Bạn có muốn đăng xuất không?")) {
+            localStorage.removeItem('goat_user_role');
+            location.reload(); 
+        }
+    };
+
+    function applyRoleSettings(role) {
+        const menuNav = document.getElementById('nav-menu');
+        if (role === 'cashier') {
+            if (menuNav) menuNav.style.display = 'none';
+            if (document.getElementById('menu-section').style.display !== 'none') {
+                switchTab('dashboard-section');
+            }
+        } else {
+            if (menuNav) menuNav.style.display = 'flex';
+        }
+    }
+
+    // Check session on start
+    const savedRole = localStorage.getItem('goat_user_role');
+    if (savedRole) {
+        document.getElementById('login-screen').style.display = 'none';
+        applyRoleSettings(savedRole);
+    } else {
+        document.getElementById('login-screen').style.display = 'flex';
+        const loginInput = document.getElementById('login-input');
+        if (loginInput) setTimeout(() => loginInput.focus(), 500);
+    }
+
     // Initial Renders
     renderTables();
     renderProducts();
     updateDashboardUI();
+    updateTopSelling();
     loadQRCode();
+    updateHeaderDate();
 });
+
+// --- SHAKE ANIMATION CSS ---
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    50% { transform: translateX(8px); }
+    75% { transform: translateX(-8px); }
+    100% { transform: translateX(0); }
+}
+`;
+document.head.appendChild(styleSheet);
 
 // --- GLOBAL NAVIGATION LOGIC ---
 function switchTab(tabId) {
