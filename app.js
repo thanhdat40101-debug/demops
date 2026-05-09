@@ -1,20 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- FIREBASE CONFIGURATION ---
+    // HƯỚNG DẪN: Dán đoạn mã config bạn lấy được từ Firebase Console vào đây
     const firebaseConfig = {
-        apiKey: "AIzaSyDTB_DwAaIpkq0Yd-E35THwXgSzosHvjtw",
-        authDomain: "v2lasst.firebaseapp.com",
-        projectId: "v2lasst",
-        storageBucket: "v2lasst.firebasestorage.app",
-        messagingSenderId: "601528216505",
-        appId: "1:601528216505:web:ae3f52cde51a0be6c9a468",
-        measurementId: "G-F156DNG4QM"
+        apiKey: "AIzaSyAr6rJhgVrvWoUkeKiTIsLXMmDs7aCLcno",
+        authDomain: "noforup.firebaseapp.com",
+        databaseURL: "https://noforup-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "noforup",
+        storageBucket: "noforup.firebasestorage.app",
+        messagingSenderId: "477221025189",
+        appId: "1:477221025189:web:d483f1821355e92899e44c"
     };
 
     // Khởi tạo Firebase
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
-    const db = firebase.firestore();
+    const db = firebase.database();
 
     const screens = document.querySelectorAll('.screen');
     const mainContent = document.getElementById('main-content');
@@ -64,17 +65,17 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('goat_pos_data', JSON.stringify(localData));
         console.log("💾 Đã lưu dữ liệu vào trình duyệt!");
 
-        // 2. Đồng bộ lên Firebase Firestore (Đồng bộ mây)
-        db.collection('data').doc('cafe_pos').set({
+        // 2. Đồng bộ lên Firebase (Nếu có kết nối)
+        db.ref('/').update({
             tableOrders,
             itemSales,
             stats,
             menuItems,
-            lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+            lastUpdate: firebase.database.ServerValue.TIMESTAMP
         }).then(() => {
-            console.log("☁️ Dữ liệu đã được đồng bộ lên Cloud (Firestore)!");
+            console.log("☁️ Dữ liệu đã được đồng bộ lên Cloud!");
         }).catch(err => {
-            console.warn("Lỗi đồng bộ Cloud:", err.message);
+            console.warn("Lỗi đồng bộ Cloud (Có thể do chưa cấu hình Firebase):", err.message);
         });
     };
 
@@ -108,10 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // 2. Lắng nghe dữ liệu REAL-TIME từ Firebase Firestore
-        db.collection('data').doc('cafe_pos').onSnapshot((docSnapshot) => {
-            if (docSnapshot.exists) {
-                const data = docSnapshot.data();
+        // 2. Lắng nghe dữ liệu REAL-TIME từ Firebase (Sẽ ghi đè nếu có dữ liệu mới hơn)
+        db.ref('/').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
                 console.log("🔄 Phát hiện dữ liệu mới từ Cloud, đang cập nhật...");
                 tableOrders = data.tableOrders || {};
                 itemSales = data.itemSales || {};
@@ -135,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateDashboardUI();
                 updateTopSelling();
             } else {
-                // Nếu Database trống và LocalStorage cũng trống, lưu dữ liệu mặc định lần đầu
+                // Nếu Database trống và LocalStorage cũng trống, lưu dữ liệu mặc định
                 if (!localDataStr) saveAppState();
             }
         });
