@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const screens = document.querySelectorAll('.screen');
     const mainContent = document.getElementById('main-content');
 
-    // --- CORE DATA (Sẽ được đồng bộ từ Firebase) ---
+    // --- CORE DATA ---
     let currentCart = [];
     let tableOrders = {}; 
     let selectedTableForBill = null;
@@ -35,12 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let menuItems = [];
     let orderHistory = [];
-
-    // Local Storage Keys
-    const DB_KEY = 'goat_pos_database';
-    const PRINT_KEY = 'goat_print_settings';
-    const QR_KEY = 'store_qr_code';
-    const HISTORY_KEY = 'goat_order_history';
+    let store_qr_code = null;
     let printSettings = {
         paperSize: 58,
         showLogo: true,
@@ -52,68 +47,58 @@ document.addEventListener('DOMContentLoaded', () => {
         footerText: ''
     };
 
-    // Hàm lưu lên mây và bộ nhớ máy
+    // Hàm lưu toàn bộ trạng thái lên Firebase Realtime Database
     window.saveAppState = function() {
-        // 1. Lưu vào LocalStorage (Luôn hoạt động)
-        const localData = {
+        const fullData = {
             tableOrders,
             itemSales,
             stats,
             menuItems,
-            lastUpdate: Date.now()
-        };
-        localStorage.setItem('goat_pos_data', JSON.stringify(localData));
-        console.log("💾 Đã lưu dữ liệu vào trình duyệt!");
-
-        // 2. Đồng bộ lên Firebase (Nếu có kết nối)
-        db.ref('/').update({
-            tableOrders,
-            itemSales,
-            stats,
-            menuItems,
+            orderHistory,
+            store_qr_code,
+            printSettings,
             lastUpdate: firebase.database.ServerValue.TIMESTAMP
-        }).then(() => {
-            console.log("☁️ Dữ liệu đã được đồng bộ lên Cloud!");
+        };
+
+        db.ref('/').set(fullData).then(() => {
+            console.log("☁️ Toàn bộ dữ liệu đã được đồng bộ Realtime lên Cloud!");
         }).catch(err => {
-            console.warn("Lỗi đồng bộ Cloud (Có thể do chưa cấu hình Firebase):", err.message);
+            console.error("❌ Lỗi đồng bộ Firebase:", err.message);
         });
     };
 
     window.initApp = function() {
-        console.log("⚡ Đang khởi tạo ứng dụng...");
+        console.log("⚡ Đang khởi tạo ứng dụng Realtime...");
 
-        // 1. Tải dữ liệu từ LocalStorage trước để hiển thị ngay lập tức
-        const localDataStr = localStorage.getItem('goat_pos_data');
-        if (localDataStr) {
-            try {
-                const data = JSON.parse(localDataStr);
-                tableOrders = data.tableOrders || {};
-                itemSales = data.itemSales || {};
-                menuItems = data.menuItems || [];
-                if (data.stats) {
-                    stats.totalRevenue = Number(data.stats.totalRevenue) || 0;
-                    stats.totalOrders = Number(data.stats.totalOrders) || 0;
-                    stats.guestCount = Number(data.stats.guestCount) || 0;
-                    stats.cashTotal = Number(data.stats.cashTotal) || 0;
-                    stats.transferTotal = Number(data.stats.transferTotal) || 0;
+        // 1. KIỂM TRA DI CƯ DỮ LIỆU (Chỉ chạy một lần nếu Firebase trống)
+        db.ref('/').once('value').then((snapshot) => {
+            if (!snapshot.exists()) {
+                console.log("⚠️ Cloud đang trống, kiểm tra dữ liệu local để di cư...");
+                const localDataStr = localStorage.getItem('goat_pos_data');
+                const localHistoryStr = localStorage.getItem('goat_order_history');
+                const localQR = localStorage.getItem('store_qr_code');
+
+                if (localDataStr) {
+                    const data = JSON.parse(localDataStr);
+                    tableOrders = data.tableOrders || {};
+                    itemSales = data.itemSales || {};
+                    menuItems = data.menuItems || [];
+                    if (data.stats) stats = data.stats;
                 }
-                console.log("✅ Đã khôi phục dữ liệu từ trình duyệt.");
-                
-                // Vẽ giao diện ngay
-                renderTables();
-                renderProducts();
-                updateDashboardUI();
-                updateTopSelling();
-            } catch (e) {
-                console.error("Lỗi khi đọc dữ liệu LocalStorage:", e);
+                if (localHistoryStr) orderHistory = JSON.parse(localHistoryStr);
+                if (localQR) store_qr_code = localQR;
+
+                console.log("📤 Đang tải dữ liệu local lên Cloud...");
+                saveAppState();
             }
-        }
-        
-        // 2. Lắng nghe dữ liệu REAL-TIME từ Firebase (Sẽ ghi đè nếu có dữ liệu mới hơn)
+        });
+
+        // 2. LẮNG NGHE DỮ LIỆU REAL-TIME
         db.ref('/').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                console.log("🔄 Phát hiện dữ liệu mới từ Cloud, đang cập nhật...");
+                console.log("🔄 Cập nhật Realtime từ Cloud...");
+                
                 tableOrders = data.tableOrders || {};
                 itemSales = data.itemSales || {};
                 menuItems = data.menuItems || [
@@ -122,59 +107,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     { name: 'Bạc Xỉu', price: 40000 },
                     { name: 'Trà Đào Cam Sả', price: 45000 }
                 ];
+                orderHistory = data.orderHistory || [];
+                store_qr_code = data.store_qr_code || null;
                 
                 if (data.stats) {
-                    stats.totalRevenue = Number(data.stats.totalRevenue) || 0;
-                    stats.totalOrders = Number(data.stats.totalOrders) || 0;
-                    stats.guestCount = Number(data.stats.guestCount) || 0;
-                    stats.cashTotal = Number(data.stats.cashTotal) || 0;
-                    stats.transferTotal = Number(data.stats.transferTotal) || 0;
+                    stats = {
+                        totalRevenue: Number(data.stats.totalRevenue) || 0,
+                        totalOrders: Number(data.stats.totalOrders) || 0,
+                        guestCount: Number(data.stats.guestCount) || 0,
+                        cashTotal: Number(data.stats.cashTotal) || 0,
+                        transferTotal: Number(data.stats.transferTotal) || 0
+                    };
                 }
 
+                if (data.printSettings) {
+                    printSettings = data.printSettings;
+                    syncPrint();
+                }
+
+                // Render lại toàn bộ UI
                 renderTables();
                 renderProducts();
                 updateDashboardUI();
                 updateTopSelling();
-            } else {
-                // Nếu Database trống và LocalStorage cũng trống, lưu dữ liệu mặc định
-                if (!localDataStr) saveAppState();
+                renderHistory();
+                loadQRCode(store_qr_code);
             }
         });
 
-        // 3. Tải cấu hình in
-        const savedPrint = localStorage.getItem(PRINT_KEY);
-        if (savedPrint) {
-            printSettings = JSON.parse(savedPrint);
-            if (document.getElementById('p-show-logo')) {
-                document.getElementById('p-show-logo').checked = !!printSettings.showLogo;
-                document.getElementById('p-show-qr').checked = !!printSettings.showQR;
-                document.getElementById('p-show-wifi').checked = !!printSettings.showWiFi;
-                document.getElementById('p-show-tax').checked = !!printSettings.showTax;
-                document.getElementById('p-show-note').checked = !!printSettings.showNote;
-                document.getElementById('p-header').value = printSettings.headerText || '';
-                document.getElementById('p-footer').value = printSettings.footerText || '';
-                selectPaper(printSettings.paperSize || 58);
-            }
-        }
-        syncPrint();
+        // 3. Cập nhật ngày tháng header
+        updateHeaderDate();
 
-        // 4. Tải lịch sử đơn hàng
-        const savedHistory = localStorage.getItem(HISTORY_KEY);
-        if (savedHistory) {
-            orderHistory = JSON.parse(savedHistory);
-        }
-        
-        // --- PRINT OPTIMIZATION ---
+        // 4. PRINT OPTIMIZATION
         window.addEventListener('beforeprint', () => {
             document.body.classList.add('is-printing');
         });
         window.addEventListener('afterprint', () => {
             document.body.classList.remove('is-printing');
         });
-
-        loadQRCode();
-        updateHeaderDate();
-        renderHistory();
     };
 
     // --- CHART INITIALIZATION ---
@@ -786,7 +756,6 @@ document.addEventListener('DOMContentLoaded', () => {
             paymentMethod: method
         };
         orderHistory.unshift(archiveOrder);
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(orderHistory));
 
         delete tableOrders[id];
         
@@ -838,18 +807,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const base64Image = e.target.result;
-                localStorage.setItem('store_qr_code', base64Image);
+                store_qr_code = e.target.result;
                 saveAppState();
-                loadQRCode();
                 alert('Đã lưu mã QR thành công!');
             };
             reader.readAsDataURL(input.files[0]);
         }
     };
 
-    window.loadQRCode = function() {
-        const qrData = localStorage.getItem('store_qr_code');
+    window.loadQRCode = function(qrDataFromFirebase) {
+        const qrData = qrDataFromFirebase || store_qr_code;
         const previewImg = document.getElementById('qr-preview-img');
         const previewPlaceholder = document.getElementById('qr-preview-placeholder');
         const billQRImg = document.getElementById('bill-qr-code-img');
@@ -946,7 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const vFooter = document.getElementById('v-footer');
         if (vFooter) vFooter.innerText = printSettings.footerText;
 
-        savePrintSettings();
+        saveAppState();
     };
 
     function togglePreviewElement(id, isShow) {
@@ -1072,7 +1039,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (password === "6666") {
             if (confirm("⚠️ Bạn có chắc chắn muốn xóa TOÀN BỘ lịch sử không?")) {
                 orderHistory = [];
-                localStorage.setItem(HISTORY_KEY, JSON.stringify(orderHistory));
+                saveAppState();
                 renderHistory();
                 alert("✅ Đã xóa sạch lịch sử đơn hàng.");
             }
@@ -1097,7 +1064,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Clear history
             orderHistory = [];
-            localStorage.setItem(HISTORY_KEY, JSON.stringify(orderHistory));
             
             // Save state (this updates both LocalStorage and Firebase)
             saveAppState();
@@ -1111,9 +1077,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    function savePrintSettings() {
-        localStorage.setItem(PRINT_KEY, JSON.stringify(printSettings));
-    }
 
     window.testPrint = function() {
         console.log("In thử hóa đơn:", printSettings.paperSize + "mm");
