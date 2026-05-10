@@ -377,6 +377,20 @@ body {
     font-weight: 300;
 }
 
+.menu-item-danger {
+    color: #ef4444 !important;
+}
+
+.menu-item-danger .menu-icon,
+.menu-item-danger .menu-label,
+.menu-item-danger .menu-chevron {
+    color: #ef4444 !important;
+}
+
+.menu-item-danger:active {
+    background-color: #fee2e2 !important;
+}
+
 /* POS Screen Styles */
 .pos-screen {
     padding-bottom: 80px; /* Space for floating cart */

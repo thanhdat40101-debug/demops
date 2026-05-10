@@ -410,7 +410,15 @@ document.addEventListener('DOMContentLoaded', () => {
             count: itemSales[key]
         })).sort((a, b) => b.count - a.count).slice(0, 3);
 
-        if (sorted.length === 0) return;
+        if (sorted.length === 0) {
+            container.innerHTML = `
+                <div class="no-data-view">
+                    <span class="coffee-icon">☕</span>
+                    <p>Chưa có dữ liệu bán chạy</p>
+                </div>
+            `;
+            return;
+        }
 
         const medals = ['🥇', '🥈', '🥉'];
         let html = '';
@@ -1070,6 +1078,36 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             alert("❌ Sai mật khẩu! Không thể thực hiện thao tác này.");
+        }
+    };
+    
+    window.resetRevenueData = function() {
+        if (confirm("Bạn có chắc chắn muốn xóa toàn bộ dữ liệu doanh thu không? Thao tác này không thể hoàn tác.")) {
+            // Reset stats
+            stats = {
+                totalRevenue: 0,
+                totalOrders: 0,
+                guestCount: 0,
+                cashTotal: 0,
+                transferTotal: 0
+            };
+            
+            // Reset item sales
+            itemSales = {};
+            
+            // Clear history
+            orderHistory = [];
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(orderHistory));
+            
+            // Save state (this updates both LocalStorage and Firebase)
+            saveAppState();
+            
+            // Update UI
+            updateDashboardUI();
+            updateTopSelling();
+            renderHistory();
+            
+            alert("✅ Đã xóa toàn bộ dữ liệu doanh thu và lịch sử!");
         }
     };
 
